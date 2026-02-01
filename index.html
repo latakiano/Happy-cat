@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Adventure - The Pro Version</title>
+    <title>Himalayan Adventure - Stage 3 Unlock</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
         #gameUI { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; z-index: 10; pointer-events: none; }
         .progress-bar { width: 70%; height: 10px; background: #333; margin: 10px auto; border-radius: 5px; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: #00ff00; transition: width 0.3s; }
+        #fill { width: 0%; height: 100%; background: #00ff00; }
         .stats { display: flex; justify-content: space-around; font-size: 14px; color: #f1c40f; font-weight: bold; }
         #screen { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
+            background: rgba(0,0,0,0.95); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; color: white; z-index: 10000; 
         }
         button { 
@@ -25,18 +25,18 @@
 <body>
 
 <div id="gameUI">
-    <div id="lvlName" style="font-size: 20px; margin-bottom: 5px;">المرحلة 1: غابة الذئاب</div>
+    <div id="lvlName" style="font-size: 20px; font-weight: bold;">المرحلة 1: غابة الذئاب</div>
     <div class="progress-bar"><div id="fill"></div></div>
     <div class="stats">
         <span>النقاط: <span id="scoreText">0</span></span>
-        <span>المسافة: <span id="distText">1200</span>m</span>
+        <span>المسافة: <span id="distText">1000</span>m</span>
     </div>
 </div>
 
 <div id="screen">
     <h1 id="mainMsg">مغامرة القطة</h1>
-    <p id="subMsg">اهرب من الوحوش للوصول للكوخ!</p>
-    <button id="mainBtn" onclick="setupLevel()">ابدأ المرحلة 🐾</button>
+    <p id="subMsg">تجاوز العقبات للوصول للكوخ</p>
+    <button id="mainBtn" onclick="startLevel()">ابدأ المرحلة 🐾</button>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -64,21 +64,22 @@
     imgs.cabin.src = 'https://img.icons8.com/color/200/log-cabin.png';
 
     const levels = [
-        { name: "المرحلة 1: غابة الذئاب", monster: "wolf", speed: 5, dist: 1200, cols: ["#FFFF00", "#FF0000", "#0000FF"], bg: "#0a0a0a" },
-        { name: "المرحلة 2: مقبرة الأشباح", monster: "ghost", speed: 7, dist: 1200, cols: ["#00FF00", "#800080"], bg: "#120024" },
-        { name: "المرحلة 3: جبال النسور", monster: "eagle", speed: 9, dist: 1200, cols: ["#FFA500", "#FFFFFF"], bg: "#001a33" },
-        { name: "المرحلة 4: وادي الأفاعي", monster: "snake", speed: 11, dist: 1200, cols: ["#8B4513", "#228B22"], bg: "#0d1a0d" }
+        { name: "المرحلة 1: غابة الذئاب", monster: "wolf", speed: 5, dist: 1000, cols: ["#FFFF00", "#FF0000"], bg: "#0a0a0a" },
+        { name: "المرحلة 2: مقبرة الأشباح", monster: "ghost", speed: 7, dist: 1000, cols: ["#00FF00", "#FF00FF"], bg: "#120024" },
+        { name: "المرحلة 3: جبال النسور", monster: "eagle", speed: 9, dist: 1000, cols: ["#00FFFF", "#FFFFFF"], bg: "#001a33" },
+        { name: "المرحلة 4: وادي الأفاعي", monster: "snake", speed: 11, dist: 1000, cols: ["#8B4513", "#228B22"], bg: "#0d1a0d" }
     ];
 
-    let currentLvl = 0, score = 0, distance = 1200;
+    let currentLvl = 0, score = 0, distance = 1000;
     let player = { x: 120, y: 0, w: 50, h: 50, v: 0, g: 0.45, j: -8 };
     let monster = { x: -200, y: 0, w: 100, h: 100 };
     let obstacles = [], items = [], active = false, gameStarted = false, cabinX = -500;
 
-    // الدالة المسؤولة عن بدء المرحلة وتصفير البيانات
-    window.setupLevel = function() {
+    window.startLevel = function() {
         screen.style.display = "none";
         const lvl = levels[currentLvl];
+        
+        // إعادة ضبط كل شيء للمرحلة الجديدة
         document.getElementById('lvlName').innerText = lvl.name;
         distance = lvl.dist;
         player.y = canvas.height / 2;
@@ -86,22 +87,19 @@
         monster.x = -150;
         monster.y = canvas.height / 2;
         obstacles = []; items = []; cabinX = -500;
+        
         active = true;
         gameStarted = false;
     };
 
     function createObstacle() {
-        if (distance < 250) return;
+        if (distance < 200) return;
         let lvl = levels[currentLvl];
-        let gap = 250 - (currentLvl * 10);
+        let gap = 240 - (currentLvl * 10);
         let top = Math.random() * (canvas.height - gap - 160) + 80;
         let color = lvl.cols[Math.floor(Math.random() * lvl.cols.length)];
         obstacles.push({ x: canvas.width, t: top, g: gap, color: color });
-        
-        // إضافة الجوائز
-        if (Math.random() > 0.6) {
-            items.push({ x: canvas.width + 50, y: top + gap/2, type: Math.random() > 0.8 ? 'bomb' : 'fish' });
-        }
+        if (Math.random() > 0.6) items.push({ x: canvas.width + 40, y: top + gap/2, type: Math.random() > 0.8 ? 'bomb' : 'fish' });
     }
 
     function update() {
@@ -110,29 +108,32 @@
         player.v += player.g; player.y += player.v;
         distance -= lvl.speed/5;
 
-        // ذكاء الوحش حسب المرحلة
+        // ذكاء الوحش
         if (lvl.monster === "eagle") monster.y += (player.y - 100 - monster.y) * 0.12;
         else if (lvl.monster === "snake") monster.y = player.y + Math.sin(Date.now() / 150) * 80;
         else monster.y += (player.y - monster.y) * 0.05;
         monster.x = Math.min(player.x - 110, monster.x + 0.25);
 
-        // النهاية والكوخ
+        // لمس الكوخ
         if (distance <= 0) {
             if(cabinX === -500) cabinX = canvas.width;
             cabinX -= lvl.speed;
             if(player.x > cabinX + 80) {
                 active = false;
                 if (currentLvl < levels.length - 1) {
-                    currentLvl++; // نجهز المرحلة التالية
-                    showMenu("وصلت للكوخ! 🏡", "دخول " + levels[currentLvl].name);
+                    currentLvl++; // ننتقل فوراً في الكود للمرحلة التالية
+                    document.getElementById('mainMsg').innerText = "وصلت للكوخ! 🏡";
+                    mainBtn.innerText = "دخول " + levels[currentLvl].name;
                 } else {
-                    showMenu("🏆 ملك الغابة! 🏆", "إعادة اللعب من جديد");
+                    document.getElementById('mainMsg').innerText = "🏆 ختمت اللعبة 🏆";
+                    mainBtn.innerText = "إعادة";
                     currentLvl = 0; score = 0;
                 }
+                screen.style.display = "flex";
             }
         }
 
-        if (distance > 200 && (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 380)) createObstacle();
+        if (distance > 150 && (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 350)) createObstacle();
 
         obstacles.forEach((p, i) => {
             p.x -= lvl.speed;
@@ -156,45 +157,33 @@
         document.getElementById('fill').style.width = (1 - (distance/levels[currentLvl].dist))*100 + "%";
     }
 
-    function showMenu(m1, m2) {
-        document.getElementById('mainMsg').innerText = m1;
-        mainBtn.innerText = m2;
-        screen.style.display = "flex";
-    }
-
     function die() {
         active = false;
-        showMenu("أمسك بك المفترس!", "حاول مجدداً");
+        document.getElementById('mainMsg').innerText = "أمسك بك المفترس!";
+        mainBtn.innerText = "حاول مجدداً";
+        screen.style.display = "flex";
     }
 
     function draw() {
         ctx.fillStyle = levels[currentLvl].bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
         if (cabinX > -500) ctx.drawImage(imgs.cabin, cabinX, canvas.height/2 - 100, 200, 200);
-        
         ctx.drawImage(imgs[levels[currentLvl].monster] || imgs.wolf, monster.x, monster.y, 100, 100);
-        
         obstacles.forEach(p => { 
-            ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, 0, 60, p.t); 
-            ctx.fillRect(p.x, p.t + p.g, 60, canvas.height); 
+            ctx.fillStyle = p.color; ctx.fillRect(p.x, 0, 60, p.t); ctx.fillRect(p.x, p.t + p.g, 60, canvas.height); 
         });
-
         items.forEach(it => ctx.drawImage(it.type === 'fish' ? imgs.fish : imgs.bomb, it.x, it.y, 40, 40));
-        
         ctx.drawImage(imgs.cat, player.x, player.y, 50, 50);
-        
         update(); 
         requestAnimationFrame(draw);
     }
 
-    const handleAction = (e) => {
+    const control = (e) => {
         if(e.target.id === 'mainBtn') return;
         if(active) { gameStarted = true; player.v = player.j; }
     };
-    window.addEventListener('mousedown', handleAction);
-    window.addEventListener('touchstart', (e) => { if(e.target.id !== 'mainBtn') e.preventDefault(); handleAction(e); }, {passive: false});
+    window.addEventListener('mousedown', control);
+    window.addEventListener('touchstart', (e) => { if(e.target.id !== 'mainBtn') e.preventDefault(); control(e); }, {passive: false});
 
     draw();
 </script>
