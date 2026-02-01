@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat Adventure - 20 Stages</title>
+    <title>Himalayan Cat Adventure - Fixed Stages</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
         #gameUI { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; z-index: 10; pointer-events: none; }
@@ -35,7 +35,7 @@
 
 <div id="screen">
     <h1 id="mainMsg">مغامرة القطة</h1>
-    <p id="subMsg">هل أنت مستعد للهرب؟</p>
+    <p id="subMsg">استعد للهرب!</p>
     <div id="actions">
         <button id="mainBtn">ابدأ المرحلة 🐾</button>
     </div>
@@ -53,7 +53,6 @@
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
-    // تحميل الصور
     const imgs = {
         cat: new Image(), wolf: new Image(), ghost: new Image(), eagle: new Image(), snake: new Image(),
         fish: new Image(), bomb: new Image(), cabin: new Image()
@@ -67,7 +66,6 @@
     imgs.bomb.src = 'https://img.icons8.com/color/48/bomb.png';
     imgs.cabin.src = 'https://img.icons8.com/color/200/log-cabin.png';
 
-    // إعدادات الـ 20 مرحلة (أضفنا 4 كبداية)
     const levels = [
         { name: "المرحلة 1: غابة الذئاب", monster: "wolf", speed: 5, dist: 1500, cols: ["#FFFF00", "#0000FF", "#FF0000"], bg: "#0a0a0a", bonus: 500 },
         { name: "المرحلة 2: مقبرة الأشباح", monster: "ghost", speed: 6.5, dist: 1800, cols: ["#00FF00"], bg: "#120024", bonus: 700 },
@@ -80,16 +78,20 @@
     let monster = { x: -200, y: 0, w: 100, h: 100 };
     let obstacles = [], items = [], active = false, gameStarted = false, cabinX = -500;
 
+    // دالة الإطلاق الموحدة
     function launch() {
         screen.style.display = "none";
         distance = levels[currentLvl].dist;
         player.y = canvas.height / 2;
         player.v = 0;
         monster.x = -150;
+        monster.y = canvas.height / 2;
         obstacles = []; items = []; cabinX = -500;
         document.getElementById('lvlName').innerText = levels[currentLvl].name;
         active = true;
         gameStarted = false;
+        // إعادة تعيين دالة الزر للوضع الطبيعي
+        mainBtn.onclick = launch;
     }
 
     mainBtn.onclick = launch;
@@ -109,11 +111,11 @@
         player.v += player.g; player.y += player.v;
         distance -= lvl.speed/5;
 
-        // ذكاء الوحوش المختلف
+        // ذكاء الوحوش
         if (lvl.monster === "eagle") {
-            monster.y += (player.y - 100 - monster.y) * 0.08; // النسر يحوم فوقك
+            monster.y += (player.y - 120 - monster.y) * 0.08; 
         } else if (lvl.monster === "snake") {
-            monster.y = player.y + Math.sin(Date.now() / 200) * 50; // الأفعى متموجة
+            monster.y = player.y + Math.sin(Date.now() / 200) * 60;
         } else {
             monster.y += (player.y - monster.y) * 0.04;
         }
@@ -125,21 +127,11 @@
             if(player.x > cabinX + 80) {
                 active = false;
                 score += lvl.bonus;
-                if (currentLvl < levels.length - 1) {
-                    currentLvl++;
-                    mainMsg.innerText = "وصلت للكوخ! 🏡";
-                    mainBtn.innerText = "دخول " + levels[currentLvl].name;
-                    screen.style.display = "flex";
-                } else {
-                    mainMsg.innerText = "🏆 ملك المغامرة! 🏆";
-                    mainBtn.innerText = "إعادة من المرحلة 1";
-                    currentLvl = 0; score = 0;
-                    screen.style.display = "flex";
-                }
+                showLevelClear();
             }
         }
 
-        if (distance > 200 && (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 350)) createObstacle();
+        if (distance > 200 && (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 380)) createObstacle();
 
         obstacles.forEach((p, i) => {
             p.x -= lvl.speed;
@@ -157,35 +149,44 @@
         });
 
         if (player.y > canvas.height || player.y < 0 || player.x <= monster.x + 60) die();
-
+        
         document.getElementById('distText').innerText = Math.max(0, Math.floor(distance));
         document.getElementById('scoreText').innerText = score;
         document.getElementById('fill').style.width = (1 - (distance/levels[currentLvl].dist))*100 + "%";
     }
 
+    function showLevelClear() {
+        screen.style.display = "flex";
+        if (currentLvl < levels.length - 1) {
+            currentLvl++;
+            mainMsg.innerText = "وصلت للكوخ! 🏡";
+            mainBtn.innerText = "دخول " + levels[currentLvl].name;
+        } else {
+            mainMsg.innerText = "🏆 ختمت اللعبة! 🏆";
+            mainBtn.innerText = "إعادة اللعب";
+            currentLvl = 0; score = 0;
+        }
+    }
+
     function die() {
         active = false;
-        mainMsg.innerText = "أمسك بك " + (levels[currentLvl].monster === 'wolf' ? 'الذئب' : 'المفترس');
+        screen.style.display = "flex";
+        mainMsg.innerText = "أمسك بك المفترس!";
         if (score >= 500 && currentLvl > 0) {
-            mainBtn.innerText = "متابعة (500- نقطة)";
-            mainBtn.onclick = function() { score -= 500; launch(); mainBtn.onclick = launch; };
+            mainBtn.innerText = "متابعة (500-)";
+            mainBtn.onclick = function() { score -= 500; launch(); };
         } else {
             mainBtn.innerText = "حاول مجدداً";
             mainBtn.onclick = launch;
         }
-        screen.style.display = "flex";
     }
 
     function draw() {
         ctx.fillStyle = levels[currentLvl].bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         if (cabinX > -500) ctx.drawImage(imgs.cabin, cabinX, canvas.height/2 - 100, 200, 200);
-        
-        // رسم الوحش حسب المرحلة
-        let m = levels[currentLvl].monster;
-        let mImg = imgs[m] || imgs.wolf;
+        let mImg = imgs[levels[currentLvl].monster] || imgs.wolf;
         ctx.drawImage(mImg, monster.x, monster.y, monster.w, monster.h);
-
         obstacles.forEach(p => {
             ctx.fillStyle = p.color; ctx.fillRect(p.x, 0, 60, p.t); ctx.fillRect(p.x, p.t + p.g, 60, canvas.height);
         });
