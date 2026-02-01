@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>هروب القطة | Cat Escape</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; touch-action: none; }
+        canvas { display: block; background: linear-gradient(#1a1a2e, #16213e); }
+        #ui { position: absolute; top: 20px; left: 20px; color: #00ffcc; font-size: 24px; text-shadow: 0 0 10px #00ffcc; }
+    </style>
+</head>
+<body>
+    <div id="ui">النقاط: <span id="score">0</span></div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let score = 0;
+let gameSpeed = 5;
+let isGameOver = false;
+
+// إعدادات القطة
+const cat = {
+    x: 50,
+    y: canvas.height - 100,
+    width: 50,
+    height: 50,
+    color: '#ff00ff',
+    dy: 0,
+    jumpForce: 15,
+    gravity: 0.8,
+    grounded: false
+};
+
+// العوائق (المفترسات)
+const obstacles = [];
+
+function spawnObstacle() {
+    let size = Math.random() * (60 - 30) + 30;
+    obstacles.push({
+        x: canvas.width,
+        y: canvas.height - size - 20,
+        width: size,
+        height: size,
+        color: '#ff3300'
+    });
+}
+
+function update() {
+    if (isGameOver) return;
+
+    // فيزياء القطة
+    cat.dy += cat.gravity;
+    cat.y += cat.dy;
+
+    if (cat.y + cat.height > canvas.height - 20) {
+        cat.y = canvas.height - 20 - cat.height;
+        cat.dy = 0;
+        cat.grounded = true;
+    }
+
+    // حركة العوائق
+    if (frameCount % 100 === 0) spawnObstacle();
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= gameSpeed;
+
+        // التحقق من التصادم
+        if (
+            cat.x < obstacles[i].x + obstacles[i].width &&
+            cat.x + cat.width > obstacles[i].x &&
+            cat.y < obstacles[i].y + obstacles[i].height &&
+            cat.y + cat.height > obstacles[i].y
+        ) {
+            isGameOver = true;
+            alert("أمسك بك المفترس! نقاطك: " + score);
+            location.reload();
+        }
+
+        // مسح العوائق الخارجة وزيادة النقاط
+        if (obstacles[i].x + obstacles[i].width < 0) {
+            obstacles.splice(i, 1);
+            score++;
+            scoreEl.innerText = score;
+            gameSpeed += 0.1; // زيادة الصعوبة
+        }
+    }
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // رسم الأرضية (خط نيون)
+    ctx.strokeStyle = '#00ffcc';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 20);
+    ctx.lineTo(canvas.width, canvas.height - 20);
+    ctx.stroke();
+
+    // رسم القطة (مكعب نيون حالياً)
+    ctx.fillStyle = cat.color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = cat.color;
+    ctx.fillRect(cat.x, cat.y, cat.width, cat.height);
+
+    // رسم المفترسات
+    for (let obs of obstacles) {
+        ctx.fillStyle = obs.color;
+        ctx.shadowColor = obs.color;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+    }
+}
+
+let frameCount = 0;
+function gameLoop() {
+    update();
+    draw();
+    frameCount++;
+    requestAnimationFrame(gameLoop);
+}
+
+// التحكم باللمس للجوال
+window.addEventListener('touchstart', () => {
+    if (cat.grounded) {
+        cat.dy = -cat.jumpForce;
+        cat.grounded = false;
+    }
+});
+
+// للكمبيوتر
+window.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && cat.grounded) {
+        cat.dy = -cat.jumpForce;
+        cat.grounded = false;
+    }
+});
+
+gameLoop();
+</script>
+</body>
+</html>
