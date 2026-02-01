@@ -3,147 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>هروب القطة | Cat Escape</title>
+    <title>Himalayan Cat Adventure - 20 Stages</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; touch-action: none; }
-        canvas { display: block; background: linear-gradient(#1a1a2e, #16213e); }
-        #ui { position: absolute; top: 20px; left: 20px; color: #00ffcc; font-size: 24px; text-shadow: 0 0 10px #00ffcc; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
+        #gameUI { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; z-index: 10; pointer-events: none; }
+        .progress-bar { width: 70%; height: 10px; background: #333; margin: 10px auto; border-radius: 5px; overflow: hidden; }
+        #fill { width: 0%; height: 100%; background: #00ff00; }
+        .stats { display: flex; justify-content: space-around; font-size: 14px; color: #f1c40f; font-weight: bold; }
+        #screen { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; color: white; z-index: 10000; 
+        }
+        button { 
+            padding: 18px 45px; font-size: 22px; cursor: pointer; border-radius: 12px; 
+            border: none; background: #27ae60; color: white; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); pointer-events: auto;
+        }
     </style>
 </head>
 <body>
-    <div id="ui">النقاط: <span id="score">0</span></div>
-    <canvas id="gameCanvas"></canvas>
+
+<div id="gameUI">
+    <div id="lvlName" style="font-size: 18px; margin-bottom: 5px;">المرحلة 1: غابة الذئاب</div>
+    <div class="progress-bar"><div id="fill"></div></div>
+    <div class="stats">
+        <span>النقاط: <span id="scoreText">0</span></span>
+        <span>المسافة: <span id="distText">1500</span>m</span>
+    </div>
+</div>
+
+<div id="screen">
+    <h1 id="mainMsg">مغامرة القطة</h1>
+    <p id="subMsg">هل أنت مستعد للهرب؟</p>
+    <div id="actions">
+        <button id="mainBtn">ابدأ المرحلة 🐾</button>
+    </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
 
 <script>
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const screen = document.getElementById('screen');
+    const mainBtn = document.getElementById('mainBtn');
+    const mainMsg = document.getElementById('mainMsg');
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-let score = 0;
-let gameSpeed = 5;
-let isGameOver = false;
+    // تحميل الصور
+    const imgs = {
+        cat: new Image(), wolf: new Image(), ghost: new Image(), eagle: new Image(), snake: new Image(),
+        fish: new Image(), bomb: new Image(), cabin: new Image()
+    };
+    imgs.cat.src = 'https://img.icons8.com/color/96/cat--v1.png';
+    imgs.wolf.src = 'https://img.icons8.com/color/150/wolf.png';
+    imgs.ghost.src = 'https://img.icons8.com/color/150/ghost.png';
+    imgs.eagle.src = 'https://img.icons8.com/color/150/eagle.png';
+    imgs.snake.src = 'https://img.icons8.com/color/150/snake.png';
+    imgs.fish.src = 'https://img.icons8.com/color/48/fish.png';
+    imgs.bomb.src = 'https://img.icons8.com/color/48/bomb.png';
+    imgs.cabin.src = 'https://img.icons8.com/color/200/log-cabin.png';
 
-// إعدادات القطة
-const cat = {
-    x: 50,
-    y: canvas.height - 100,
-    width: 50,
-    height: 50,
-    color: '#ff00ff',
-    dy: 0,
-    jumpForce: 15,
-    gravity: 0.8,
-    grounded: false
-};
+    // إعدادات الـ 20 مرحلة (أضفنا 4 كبداية)
+    const levels = [
+        { name: "المرحلة 1: غابة الذئاب", monster: "wolf", speed: 5, dist: 1500, cols: ["#FFFF00", "#0000FF", "#FF0000"], bg: "#0a0a0a", bonus: 500 },
+        { name: "المرحلة 2: مقبرة الأشباح", monster: "ghost", speed: 6.5, dist: 1800, cols: ["#00FF00"], bg: "#120024", bonus: 700 },
+        { name: "المرحلة 3: جبال النسور", monster: "eagle", speed: 8, dist: 2000, cols: ["#FFA500", "#FFFFFF"], bg: "#001a33", bonus: 1000 },
+        { name: "المرحلة 4: وادي الأفاعي", monster: "snake", speed: 9.5, dist: 2500, cols: ["#8B4513", "#228B22"], bg: "#0d1a0d", bonus: 1500 }
+    ];
 
-// العوائق (المفترسات)
-const obstacles = [];
+    let currentLvl = 0, score = 0, distance = 1500;
+    let player = { x: 120, y: 0, w: 50, h: 50, v: 0, g: 0.45, j: -8 };
+    let monster = { x: -200, y: 0, w: 100, h: 100 };
+    let obstacles = [], items = [], active = false, gameStarted = false, cabinX = -500;
 
-function spawnObstacle() {
-    let size = Math.random() * (60 - 30) + 30;
-    obstacles.push({
-        x: canvas.width,
-        y: canvas.height - size - 20,
-        width: size,
-        height: size,
-        color: '#ff3300'
-    });
-}
-
-function update() {
-    if (isGameOver) return;
-
-    // فيزياء القطة
-    cat.dy += cat.gravity;
-    cat.y += cat.dy;
-
-    if (cat.y + cat.height > canvas.height - 20) {
-        cat.y = canvas.height - 20 - cat.height;
-        cat.dy = 0;
-        cat.grounded = true;
+    function launch() {
+        screen.style.display = "none";
+        distance = levels[currentLvl].dist;
+        player.y = canvas.height / 2;
+        player.v = 0;
+        monster.x = -150;
+        obstacles = []; items = []; cabinX = -500;
+        document.getElementById('lvlName').innerText = levels[currentLvl].name;
+        active = true;
+        gameStarted = false;
     }
 
-    // حركة العوائق
-    if (frameCount % 100 === 0) spawnObstacle();
+    mainBtn.onclick = launch;
 
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= gameSpeed;
+    function createObstacle() {
+        if (distance < 300) return;
+        let gap = 260 - (currentLvl * 15);
+        let top = Math.random() * (canvas.height - gap - 160) + 80;
+        let col = levels[currentLvl].cols[obstacles.length % levels[currentLvl].cols.length];
+        obstacles.push({ x: canvas.width, t: top, g: gap, color: col });
+        if (Math.random() > 0.5) items.push({ x: canvas.width + 40, y: top + gap/2, type: Math.random() > 0.8 ? 'bomb' : 'fish' });
+    }
 
-        // التحقق من التصادم
-        if (
-            cat.x < obstacles[i].x + obstacles[i].width &&
-            cat.x + cat.width > obstacles[i].x &&
-            cat.y < obstacles[i].y + obstacles[i].height &&
-            cat.y + cat.height > obstacles[i].y
-        ) {
-            isGameOver = true;
-            alert("أمسك بك المفترس! نقاطك: " + score);
-            location.reload();
+    function update() {
+        if (!active || !gameStarted) return;
+        let lvl = levels[currentLvl];
+        player.v += player.g; player.y += player.v;
+        distance -= lvl.speed/5;
+
+        // ذكاء الوحوش المختلف
+        if (lvl.monster === "eagle") {
+            monster.y += (player.y - 100 - monster.y) * 0.08; // النسر يحوم فوقك
+        } else if (lvl.monster === "snake") {
+            monster.y = player.y + Math.sin(Date.now() / 200) * 50; // الأفعى متموجة
+        } else {
+            monster.y += (player.y - monster.y) * 0.04;
+        }
+        monster.x = Math.min(player.x - 110, monster.x + 0.3);
+
+        if (distance <= 0) {
+            if(cabinX === -500) cabinX = canvas.width;
+            cabinX -= lvl.speed;
+            if(player.x > cabinX + 80) {
+                active = false;
+                score += lvl.bonus;
+                if (currentLvl < levels.length - 1) {
+                    currentLvl++;
+                    mainMsg.innerText = "وصلت للكوخ! 🏡";
+                    mainBtn.innerText = "دخول " + levels[currentLvl].name;
+                    screen.style.display = "flex";
+                } else {
+                    mainMsg.innerText = "🏆 ملك المغامرة! 🏆";
+                    mainBtn.innerText = "إعادة من المرحلة 1";
+                    currentLvl = 0; score = 0;
+                    screen.style.display = "flex";
+                }
+            }
         }
 
-        // مسح العوائق الخارجة وزيادة النقاط
-        if (obstacles[i].x + obstacles[i].width < 0) {
-            obstacles.splice(i, 1);
-            score++;
-            scoreEl.innerText = score;
-            gameSpeed += 0.1; // زيادة الصعوبة
+        if (distance > 200 && (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 350)) createObstacle();
+
+        obstacles.forEach((p, i) => {
+            p.x -= lvl.speed;
+            if (player.x + 15 < p.x + 60 && player.x + player.w - 15 > p.x && (player.y + 15 < p.t || player.y + player.h - 15 > p.t + p.g)) die();
+            if (p.x + 60 < 0) obstacles.splice(i, 1);
+        });
+
+        items.forEach((it, i) => {
+            it.x -= lvl.speed;
+            if (Math.hypot(player.x - it.x, player.y - it.y) < 40) {
+                if(it.type === 'fish') { score += (100 + currentLvl*50); distance -= 200; }
+                else { monster.x = -300; score += 200; }
+                items.splice(i, 1);
+            }
+        });
+
+        if (player.y > canvas.height || player.y < 0 || player.x <= monster.x + 60) die();
+
+        document.getElementById('distText').innerText = Math.max(0, Math.floor(distance));
+        document.getElementById('scoreText').innerText = score;
+        document.getElementById('fill').style.width = (1 - (distance/levels[currentLvl].dist))*100 + "%";
+    }
+
+    function die() {
+        active = false;
+        mainMsg.innerText = "أمسك بك " + (levels[currentLvl].monster === 'wolf' ? 'الذئب' : 'المفترس');
+        if (score >= 500 && currentLvl > 0) {
+            mainBtn.innerText = "متابعة (500- نقطة)";
+            mainBtn.onclick = function() { score -= 500; launch(); mainBtn.onclick = launch; };
+        } else {
+            mainBtn.innerText = "حاول مجدداً";
+            mainBtn.onclick = launch;
         }
+        screen.style.display = "flex";
     }
-}
 
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function draw() {
+        ctx.fillStyle = levels[currentLvl].bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (cabinX > -500) ctx.drawImage(imgs.cabin, cabinX, canvas.height/2 - 100, 200, 200);
+        
+        // رسم الوحش حسب المرحلة
+        let m = levels[currentLvl].monster;
+        let mImg = imgs[m] || imgs.wolf;
+        ctx.drawImage(mImg, monster.x, monster.y, monster.w, monster.h);
 
-    // رسم الأرضية (خط نيون)
-    ctx.strokeStyle = '#00ffcc';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height - 20);
-    ctx.lineTo(canvas.width, canvas.height - 20);
-    ctx.stroke();
-
-    // رسم القطة (مكعب نيون حالياً)
-    ctx.fillStyle = cat.color;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = cat.color;
-    ctx.fillRect(cat.x, cat.y, cat.width, cat.height);
-
-    // رسم المفترسات
-    for (let obs of obstacles) {
-        ctx.fillStyle = obs.color;
-        ctx.shadowColor = obs.color;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        obstacles.forEach(p => {
+            ctx.fillStyle = p.color; ctx.fillRect(p.x, 0, 60, p.t); ctx.fillRect(p.x, p.t + p.g, 60, canvas.height);
+        });
+        items.forEach(it => ctx.drawImage(it.type === 'fish' ? imgs.fish : imgs.bomb, it.x, it.y, 40, 40));
+        ctx.drawImage(imgs.cat, player.x, player.y, player.w, player.h);
+        update(); requestAnimationFrame(draw);
     }
-}
 
-let frameCount = 0;
-function gameLoop() {
-    update();
+    window.addEventListener('mousedown', () => { if(active) gameStarted = true; player.v = player.j; });
+    window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'BUTTON') e.preventDefault(); if(active) gameStarted = true; player.v = player.j; }, {passive: false});
+
     draw();
-    frameCount++;
-    requestAnimationFrame(gameLoop);
-}
-
-// التحكم باللمس للجوال
-window.addEventListener('touchstart', () => {
-    if (cat.grounded) {
-        cat.dy = -cat.jumpForce;
-        cat.grounded = false;
-    }
-});
-
-// للكمبيوتر
-window.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && cat.grounded) {
-        cat.dy = -cat.jumpForce;
-        cat.grounded = false;
-    }
-});
-
-gameLoop();
 </script>
 </body>
 </html>
