@@ -1,139 +1,217 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat Adventure - Siberian Wolf Edition</title>
+    <title>رهف الهيمالايا: الهروب من الذئب</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
-        .bar { width: 75%; height: 16px; background: rgba(255,255,255,0.1); margin: 10px auto; border-radius: 10px; border: 2px solid #fff; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ffcc00, #ff6600); box-shadow: 0 0 15px #ffcc00; transition: width 0.2s; }
+        body { margin: 0; overflow: hidden; background: #010409; font-family: 'Arial', sans-serif; touch-action: none; }
+        
+        /* شاشة البداية الاحترافية */
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover; display: flex; flex-direction: column; 
             justify-content: center; align-items: center; color: white; z-index: 1000; 
         }
-        .shop-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 20px; border: 2px solid #f1c40f; margin-top: 15px; width: 80%; max-width: 400px; }
-        button { 
-            padding: 15px 40px; font-size: 22px; cursor: pointer; border-radius: 50px; 
-            background: #27ae60; color: white; border: none; font-weight: bold; margin: 10px;
-            box-shadow: 0 5px 0 #1e8449; transition: 0.2s;
+
+        .menu-card {
+            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px);
+            padding: 30px; border-radius: 25px; border: 2px solid rgba(255, 215, 0, 0.3);
+            text-align: center; box-shadow: 0 0 50px rgba(0,0,0,1);
         }
-        button:hover { background: #2ecc71; }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        .info { color:#f1c40f; font-size: 20px; font-weight: bold; text-shadow: 2px 2px #000; }
-        .price { color: #00ffcc; font-size: 14px; display: block; }
+
+        button { 
+            padding: 15px 45px; font-size: 24px; cursor: pointer; border-radius: 50px; 
+            background: #f1c40f; color: #000; border: none; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4); transition: 0.3s;
+        }
+        button:hover { transform: scale(1.05); background: #f39c12; }
+
+        /* واجهة المعلومات أثناء اللعب */
+        #hud {
+            position: absolute; top: 20px; width: 100%; display: flex;
+            justify-content: space-around; color: #f1c40f; font-weight: bold;
+            font-size: 20px; z-index: 10; pointer-events: none; text-shadow: 2px 2px 5px #000;
+        }
+
+        .progress-container {
+            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+            width: 200px; height: 10px; background: rgba(255,255,255,0.2);
+            border-radius: 5px; overflow: hidden; border: 1px solid #fff;
+        }
+        #fill { width: 0%; height: 100%; background: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div id="lvlName" style="font-size: 26px; font-weight: bold; color: #00f2ff;">المرحلة 1: مطاردة الذئب السيبيري</div>
-    <div class="bar"><div id="fill"></div></div>
-    <div class="info">🐟 السمك الذهبي: <span id="totalFish">0</span> | 🏁 المسافة: <span id="dist">1000</span>m</div>
+<div id="hud">
+    <div>🐟 السمك: <span id="fishCount">0</span></div>
+    <div id="lvlTxt">المرحلة 1</div>
+    <div>🏁 المسافة: <span id="distTxt">1000</span>m</div>
 </div>
+<div class="progress-container"><div id="fill"></div></div>
 
 <div id="overlay">
-    <h1 id="msg" style="font-size: 32px; color: #f1c40f;">مغامرة رهف الهيمالايا 🐾</h1>
-    <p id="subMsg">رصيدك الحالي: <span id="currentWallet">0</span> سمكة 🐠</p>
-    
-    <button onclick="setupStage()">بدء المغامرة 🚀</button>
-
-    <div class="shop-box">
-        <h3 style="margin-top: 0;">متجر القطة 🛒</h3>
-        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-            <button onclick="buyShield()" style="background: #2980b9; font-size: 16px; padding: 10px 20px;">🛡️ شراء درع
-                <span class="price">1000 سمكة</span>
-            </button>
+    <div class="menu-card">
+        <h1 style="color: #f1c40f; margin: 0;">مغامرة القطة رهف 🐾</h1>
+        <p style="font-size: 18px;">الذئب السيبيري يقترب.. هل يمكنك الهروب؟</p>
+        <button onclick="startGame()">إبدأ التحدي الآن ✨</button>
+        <div style="margin-top: 20px; font-size: 14px; color: #00ffcc;">
+            استخدم النقرات للقفز وجمع السمك 🐠
         </div>
     </div>
 </div>
 
-<canvas id="c"></canvas>
+<canvas id="gameCanvas"></canvas>
 
 <script>
-    const canvas = document.getElementById('c');
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
-    let audioCtx;
-    let totalFish = 0;
-    let hasShield = false;
-
-    // روابط الصور الحقيقية (قطة هيمالايا، ذئب سيبيري، سمك واقعي)
-    const I = {
-        cat: 'https://cdn-icons-png.flaticon.com/512/616/616430.png', // سيتم معاملتها كقطة هيمالايا
-        wolf: 'https://cdn-icons-png.flaticon.com/512/2353/2353678.png', // ذئب سيبيري
-        fish: 'https://cdn-icons-png.flaticon.com/512/2415/2415077.png', // سمك سلمون حقيقي
-        cabin: 'https://cdn-icons-png.flaticon.com/512/2237/2237837.png',
-        // بقية الوحوش الحقيقية للمراحل الـ 20
-        ghost: 'https://cdn-icons-png.flaticon.com/512/1048/1048955.png',
-        eagle: 'https://cdn-icons-png.flaticon.com/512/1820/1820042.png',
-        snake: 'https://cdn-icons-png.flaticon.com/512/2425/2425810.png',
-        croc: 'https://cdn-icons-png.flaticon.com/512/2810/2810057.png',
-        lion: 'https://cdn-icons-png.flaticon.com/512/616/616412.png',
-        dragon: 'https://cdn-icons-png.flaticon.com/512/2497/2497607.png'
+    
+    // روابط الصور الحقيقية المحسنة
+    const assets = {
+        cat: 'https://cdn-icons-png.flaticon.com/512/616/616430.png',
+        wolf: 'https://cdn-icons-png.flaticon.com/512/2353/2353678.png',
+        fish: 'https://cdn-icons-png.flaticon.com/512/2415/2415077.png',
+        cabin: 'https://cdn-icons-png.flaticon.com/512/2237/2237837.png'
     };
 
-    const imgs = {};
-    Object.keys(I).forEach(k => { imgs[k] = new Image(); imgs[k].src = I[k]; });
+    const img = {};
+    Object.keys(assets).forEach(key => {
+        img[key] = new Image();
+        img[key].src = assets[key];
+    });
 
-    const stages = [
-        { n: "مطاردة الذئب السيبيري", m: "wolf", bg: "#0d1b2a", col: "#f1c40f", s: 6.5 },
-        { n: "الأشباح الحقيقية", m: "ghost", bg: "#1a0033", col: "#9b59b6", s: 7.5 },
-        { n: "هجوم النسور", m: "eagle", bg: "#001a33", col: "#33ccff", s: 8 },
-        { n: "غابة الأفاعي", m: "snake", bg: "#1a0d00", col: "#e67e22", s: 9 },
-        { n: "نهر التماسيح", m: "croc", bg: "#002b2b", col: "#1abc9c", s: 10 }
-        // ... يمكن تكرار البقية لملء الـ 20 مرحلة بنفس المنطق
-    ];
+    let gameActive = false;
+    let score = 0;
+    let distance = 1000;
+    let frame = 0;
+    let cat = { x: 200, y: 0, v: 0, size: 80 };
+    let wolf = { x: -150, y: 0, size: 120 };
+    let obstacles = [];
+    let fishes = [];
+    let cabinX = -500;
 
-    let cur = 0, dist = 1000, active = false, started = false, frame = 0;
-    let p = { x: 150, y: 0, v: 0 }; // القطة في الأمام قليلاً
-    let m = { x: -150, y: 0 };     // الوحش يبدأ من الخلف تماماً
-    let obs = [], items = [], cabinX = -500;
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize); resize();
-
-    window.setupStage = function() {
+    function startGame() {
         overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; 
-        m.x = -200; m.y = canvas.height/2; // الوحش خلف الشاشة
-        obs = []; items = []; cabinX = -500;
-        document.getElementById('lvlName').innerText = `المرحلة ${cur+1}: ${stages[cur % stages.length].n}`;
-        updateUI();
-        active = true; started = false;
-    };
-
-    window.buyShield = function() {
-        if(totalFish >= 1000) { totalFish -= 1000; hasShield = true; updateUI(); alert("تم شراء الدرع!"); }
-        else alert("تحتاج لمزيد من السمك!");
-    };
-
-    function updateUI() {
-        document.getElementById('totalFish').innerText = totalFish;
-        document.getElementById('currentWallet').innerText = totalFish;
+        gameActive = true;
+        distance = 1000;
+        cat.y = canvas.height / 2;
+        cat.v = 0;
+        wolf.x = -150;
+        obstacles = [];
+        fishes = [];
+        cabinX = -500;
     }
 
     function die() {
-        if(hasShield) { hasShield = false; p.v = -12; return; }
-        active = false; started = false;
-        document.getElementById('msg').innerText = "أمسك بك الوحش! 🙀";
+        gameActive = false;
         overlay.style.display = 'flex';
+        document.querySelector('h1').innerText = "للأسف أمسك بك الذئب! 🐺";
+        document.querySelector('button').innerText = "حاول مرة أخرى 🔄";
     }
 
-    function loop() {
+    function update() {
+        if (!gameActive) return;
+
         frame++;
-        const s = stages[cur % stages.length];
-        ctx.fillStyle = s.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        cat.v += 0.5; // الجاذبية
+        cat.y += cat.v;
 
-        if (active && started) {
-            p.v += 0.48; p.y += p.v; dist -= s.s / 10;
-            
-            // الوحش يطارد من الخلف (اليسار)
-            m.y += (p.y - m.y) * 0.07; 
-            m.x = Math.min(p.x - 120, m.x + 0.4); // الوحش يقترب تدريجياً من القطة
+        // حركة الذئب (المطاردة من الخلف)
+        wolf.y += (cat.y - wolf.y) * 0.08;
+        wolf.x = Math.min(cat.x - 130, wolf.x + 0.4);
 
-            if (dist <= 0) {
-                if(cabinX === -500) cabinX = canvas.width;
-                cabinX -= s
+        distance -= 0.8;
+        if (distance <= 0) {
+            if (cabinX === -500) cabinX = canvas.width;
+            cabinX -= 7;
+            if (cat.x > cabinX + 50) startGame(); // الانتقال لمرحلة جديدة
+        }
+
+        // توليد العوائق والسمك
+        if (distance > 50 && frame % 100 === 0) {
+            let gapY = Math.random() * (canvas.height - 300) + 100;
+            obstacles.push({ x: canvas.width, y: gapY, w: 50, g: 280 });
+            fishes.push({ x: canvas.width + 100, y: gapY + 140 });
+        }
+
+        // تحريك العوائق وفحص التصادم
+        obstacles.forEach((o, i) => {
+            o.x -= 7;
+            if (cat.x + 40 > o.x && cat.x < o.x + o.w && (cat.y < o.y || cat.y + 40 > o.y + o.g)) die();
+            if (o.x < -100) obstacles.splice(i, 1);
+        });
+
+        // جمع السمك
+        fishes.forEach((f, i) => {
+            f.x -= 7;
+            if (Math.hypot(cat.x - f.x, cat.y - f.y) < 50) {
+                score += 10;
+                fishes.splice(i, 1);
+            }
+        });
+
+        if (cat.y > canvas.height || cat.y < -50 || cat.x < wolf.x + 80) die();
+
+        // تحديث الواجهة
+        document.getElementById('fishCount').innerText = score;
+        document.getElementById('distTxt').innerText = Math.max(0, Math.floor(distance));
+        document.getElementById('fill').style.width = (1 - distance/1000) * 100 + "%";
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // رسم الخلفية (تدرج ليلي)
+        let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#020617');
+        grad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // رسم الكوخ
+        if (cabinX > -500) ctx.drawImage(img.cabin, cabinX, canvas.height/2 - 100, 180, 180);
+
+        // رسم الذئب (خلف القطة ووجهه لليمين)
+        ctx.save();
+        ctx.translate(wolf.x + wolf.size, wolf.y + Math.sin(frame*0.2)*10);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img.wolf, 0, 0, wolf.size, wolf.size);
+        ctx.restore();
+
+        // رسم العوائق
+        ctx.fillStyle = "#f1c40f";
+        obstacles.forEach(o => {
+            ctx.shadowBlur = 15; ctx.shadowColor = "#f1c40f";
+            ctx.fillRect(o.x, 0, o.w, o.y);
+            ctx.fillRect(o.x, o.y + o.g, o.w, canvas.height);
+        });
+        ctx.shadowBlur = 0;
+
+        // رسم السمك
+        fishes.forEach(f => ctx.drawImage(img.fish, f.x, f.y, 50, 40));
+
+        // رسم القطة الهيمالايا
+        ctx.drawImage(img.cat, cat.x, cat.y, cat.size, cat.size);
+
+        update();
+        requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('mousedown', () => { if(gameActive) cat.v = -9; });
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); if(gameActive) cat.v = -9; }, {passive: false});
+
+    draw();
+</script>
+</body>
+</html>
