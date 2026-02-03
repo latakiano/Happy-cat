@@ -108,7 +108,7 @@
                 house.x -= (6 + level * 0.3);
                 if(Math.hypot(p.x-house.x, p.y-house.y) < 60) {
                     level = (level + 1) % 20; active = false;
-                    document.getElementById('msg').innerText = "دخلت الكوخ بسلام! 🏠🏆";
+                    document.getElementById('msg').innerText = "دخلت الكوخ بسلام! 🏡🏆";
                     overlay.style.display = 'flex';
                 }
             }
@@ -134,7 +134,7 @@
         });
 
         // رسم الكوخ
-        if(house) ctx.fillText("🏠", house.x, house.y + 40);
+        if(house) ctx.fillText("🏡", house.x, house.y + 40);
 
         // رسم الوحش (ذئب)
         ctx.fillText("🦊", m.x + 80, m.y + 60);
