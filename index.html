@@ -1,88 +1,139 @@
-import pygame
-import random
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Himalayan Cat Adventure - Siberian Wolf Edition</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
+        .bar { width: 75%; height: 16px; background: rgba(255,255,255,0.1); margin: 10px auto; border-radius: 10px; border: 2px solid #fff; overflow: hidden; }
+        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ffcc00, #ff6600); box-shadow: 0 0 15px #ffcc00; transition: width 0.2s; }
+        #overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; color: white; z-index: 1000; 
+        }
+        .shop-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 20px; border: 2px solid #f1c40f; margin-top: 15px; width: 80%; max-width: 400px; }
+        button { 
+            padding: 15px 40px; font-size: 22px; cursor: pointer; border-radius: 50px; 
+            background: #27ae60; color: white; border: none; font-weight: bold; margin: 10px;
+            box-shadow: 0 5px 0 #1e8449; transition: 0.2s;
+        }
+        button:hover { background: #2ecc71; }
+        button:active { transform: translateY(4px); box-shadow: none; }
+        .info { color:#f1c40f; font-size: 20px; font-weight: bold; text-shadow: 2px 2px #000; }
+        .price { color: #00ffcc; font-size: 14px; display: block; }
+    </style>
+</head>
+<body>
 
-# إعدادات المراحل (Stages 1-5: التأسيس)
-pygame.init()
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("لعبة القطة - الكود الذهبي 20 مرحلة")
+<div id="ui">
+    <div id="lvlName" style="font-size: 26px; font-weight: bold; color: #00f2ff;">المرحلة 1: مطاردة الذئب السيبيري</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div class="info">🐟 السمك الذهبي: <span id="totalFish">0</span> | 🏁 المسافة: <span id="dist">1000</span>m</div>
+</div>
 
-# الألوان (Stage 4: Feature Engineering)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-CAT_COLOR = (255, 165, 0) # برتقالي
+<div id="overlay">
+    <h1 id="msg" style="font-size: 32px; color: #f1c40f;">مغامرة رهف الهيمالايا 🐾</h1>
+    <p id="subMsg">رصيدك الحالي: <span id="currentWallet">0</span> سمكة 🐠</p>
+    
+    <button onclick="setupStage()">بدء المغامرة 🚀</button>
 
-# كلاس القطة (Stages 6-10: المنطق والتحليل)
-class Cat:
-    def __init__(self):
-        self.rect = pygame.Rect(400, 500, 50, 50)
-        self.speed = 7
+    <div class="shop-box">
+        <h3 style="margin-top: 0;">متجر القطة 🛒</h3>
+        <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+            <button onclick="buyShield()" style="background: #2980b9; font-size: 16px; padding: 10px 20px;">🛡️ شراء درع
+                <span class="price">1000 سمكة</span>
+            </button>
+        </div>
+    </div>
+</div>
 
-    def move(self, keys):
-        if keys[pygame.K_LEFT] and self.rect.left > 0:
-            self.rect.x -= self.speed
-        if keys[pygame.K_RIGHT] and self.rect.right < SCREEN_WIDTH:
-            self.rect.x += self.speed
+<canvas id="c"></canvas>
 
-# نظام النقاط والمراحل (Stages 11-15: الربط والواجهة)
-class GameSystem:
-    def __init__(self):
-        self.stage = 1
-        self.score = 0
-        self.font = pygame.font.SysFont("Arial", 24)
+<script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    let audioCtx;
+    let totalFish = 0;
+    let hasShield = false;
 
-    def update_stage(self):
-        # كل 10 نقاط ننتقل لمرحلة جديدة (حتى نصل لـ 20)
-        self.stage = (self.score // 10) + 1
-        if self.stage > 20: self.stage = 20
+    // روابط الصور الحقيقية (قطة هيمالايا، ذئب سيبيري، سمك واقعي)
+    const I = {
+        cat: 'https://cdn-icons-png.flaticon.com/512/616/616430.png', // سيتم معاملتها كقطة هيمالايا
+        wolf: 'https://cdn-icons-png.flaticon.com/512/2353/2353678.png', // ذئب سيبيري
+        fish: 'https://cdn-icons-png.flaticon.com/512/2415/2415077.png', // سمك سلمون حقيقي
+        cabin: 'https://cdn-icons-png.flaticon.com/512/2237/2237837.png',
+        // بقية الوحوش الحقيقية للمراحل الـ 20
+        ghost: 'https://cdn-icons-png.flaticon.com/512/1048/1048955.png',
+        eagle: 'https://cdn-icons-png.flaticon.com/512/1820/1820042.png',
+        snake: 'https://cdn-icons-png.flaticon.com/512/2425/2425810.png',
+        croc: 'https://cdn-icons-png.flaticon.com/512/2810/2810057.png',
+        lion: 'https://cdn-icons-png.flaticon.com/512/616/616412.png',
+        dragon: 'https://cdn-icons-png.flaticon.com/512/2497/2497607.png'
+    };
 
-    def draw(self, surface):
-        text = self.font.render(f"Stage: {self.stage}/20  | Score: {self.score}", True, BLACK)
-        surface.blit(text, (10, 10))
+    const imgs = {};
+    Object.keys(I).forEach(k => { imgs[k] = new Image(); imgs[k].src = I[k]; });
 
-# الدورة الرئيسية للعبة (Stages 16-20: الاختبار والتدشين)
-def start_game():
-    cat = Cat()
-    system = GameSystem()
-    food = pygame.Rect(random.randint(0, 750), 0, 30, 30)
-    clock = pygame.time.Clock()
-    running = True
+    const stages = [
+        { n: "مطاردة الذئب السيبيري", m: "wolf", bg: "#0d1b2a", col: "#f1c40f", s: 6.5 },
+        { n: "الأشباح الحقيقية", m: "ghost", bg: "#1a0033", col: "#9b59b6", s: 7.5 },
+        { n: "هجوم النسور", m: "eagle", bg: "#001a33", col: "#33ccff", s: 8 },
+        { n: "غابة الأفاعي", m: "snake", bg: "#1a0d00", col: "#e67e22", s: 9 },
+        { n: "نهر التماسيح", m: "croc", bg: "#002b2b", col: "#1abc9c", s: 10 }
+        // ... يمكن تكرار البقية لملء الـ 20 مرحلة بنفس المنطق
+    ];
 
-    while running:
-        screen.fill(WHITE)
-        keys = pygame.key.get_pressed()
+    let cur = 0, dist = 1000, active = false, started = false, frame = 0;
+    let p = { x: 150, y: 0, v: 0 }; // القطة في الأمام قليلاً
+    let m = { x: -150, y: 0 };     // الوحش يبدأ من الخلف تماماً
+    let obs = [], items = [], cabinX = -500;
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-        # تحريك القطة
-        cat.move(keys)
-        
-        # تحريك الطعام (يزداد الصعوبة مع تقدم المراحل)
-        food.y += 5 + system.stage # تزداد السرعة حسب المرحلة
-        if food.y > SCREEN_HEIGHT:
-            food.y = 0
-            food.x = random.randint(0, 750)
+    window.setupStage = function() {
+        overlay.style.display = 'none';
+        dist = 1000; p.y = canvas.height/2; p.v = 0; 
+        m.x = -200; m.y = canvas.height/2; // الوحش خلف الشاشة
+        obs = []; items = []; cabinX = -500;
+        document.getElementById('lvlName').innerText = `المرحلة ${cur+1}: ${stages[cur % stages.length].n}`;
+        updateUI();
+        active = true; started = false;
+    };
 
-        # التحقق من الاصطدام (نقطة)
-        if cat.rect.colliderect(food):
-            system.score += 2
-            system.update_stage()
-            food.y = 0
-            food.x = random.randint(0, 750)
+    window.buyShield = function() {
+        if(totalFish >= 1000) { totalFish -= 1000; hasShield = true; updateUI(); alert("تم شراء الدرع!"); }
+        else alert("تحتاج لمزيد من السمك!");
+    };
 
-        # رسم العناصر
-        pygame.draw.rect(screen, CAT_COLOR, cat.rect) # القطة
-        pygame.draw.ellipse(screen, (200, 0, 0), food) # الطعام
-        system.draw(screen)
+    function updateUI() {
+        document.getElementById('totalFish').innerText = totalFish;
+        document.getElementById('currentWallet').innerText = totalFish;
+    }
 
-        pygame.display.flip()
-        clock.tick(60)
+    function die() {
+        if(hasShield) { hasShield = false; p.v = -12; return; }
+        active = false; started = false;
+        document.getElementById('msg').innerText = "أمسك بك الوحش! 🙀";
+        overlay.style.display = 'flex';
+    }
 
-    pygame.quit()
+    function loop() {
+        frame++;
+        const s = stages[cur % stages.length];
+        ctx.fillStyle = s.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-# تشغيل المرحلة 20 (التدشين النهائي)
-if __name__ == "__main__":
-    start_game()
+        if (active && started) {
+            p.v += 0.48; p.y += p.v; dist -= s.s / 10;
+            
+            // الوحش يطارد من الخلف (اليسار)
+            m.y += (p.y - m.y) * 0.07; 
+            m.x = Math.min(p.x - 120, m.x + 0.4); // الوحش يقترب تدريجياً من القطة
+
+            if (dist <= 0) {
+                if(cabinX === -500) cabinX = canvas.width;
+                cabinX -= s
