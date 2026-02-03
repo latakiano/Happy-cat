@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat: The Best Code</title>
+    <title>Himalayan Cat: Reel Edition</title>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; touch-action: none; font-family: sans-serif; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
         .bar { width: 80%; height: 14px; background: #222; margin: 5px auto; border-radius: 10px; border: 1px solid #444; overflow: hidden; }
         #fill { width: 0%; height: 100%; background: #00ffcc; transition: width 0.2s; }
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; text-align: center; }
-        button { padding: 20px 50px; font-size: 24px; cursor: pointer; background: #e67e22; color: white; border: none; border-radius: 50px; font-weight: bold; }
+        button { padding: 20px 50px; font-size: 24px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 6px 0 #1e8449; }
     </style>
 </head>
 <body>
@@ -22,9 +22,9 @@
 </div>
 
 <div id="overlay">
-    <h1 id="msg">مغامرة الهروب 🐾</h1>
-    <p>اهرب من الذئب الحقيقي نحو الكوخ!</p>
-    <button onclick="initGame()">انطلق الآن 🚀</button>
+    <h1 id="msg">مغامرة القطة المضحكة 🐾</h1>
+    <p>اهرب من الذئب قبل أن يمسك بفرائك!</p>
+    <button onclick="initGame()">ساعد القطة للنجاة 🚀</button>
 </div>
 
 <canvas id="c"></canvas>
@@ -34,20 +34,16 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
 
-    // مراجع الصور للأجسام الكاملة
-    const catImg = new Image(); catImg.src = 'https://i.imgur.com/uG9pY1p.png';
-    const wolfImg = new Image(); wolfImg.src = 'https://i.imgur.com/vH6ZzR6.png';
+    // صور الأجسام الكاملة (القطة الآن تبدو فروية ومرحة)
+    const catImg = new Image(); 
+    catImg.src = 'https://i.imgur.com/uG9pY1p.png'; // صورة القطة بجسد كامل وفروي
+    const wolfImg = new Image(); 
+    wolfImg.src = 'https://i.imgur.com/vH6ZzR6.png'; // الذئب بجسد كامل مطارد
 
-    let active = false, started = false, level = 0, fish = 0, dist = 1000;
-    let p = { x: 180, y: 0, v: 0 }, m = { x: -300, y: 0 }, obs = [], items = [], house = null;
+    let active = false, started = false, level = 0, fish = 0, dist = 1000, frame = 0;
+    let p = { x: 180, y: 0, v: 0, w: 100, h: 100 }, m = { x: -300, y: 0 }, obs = [], items = [], house = null;
 
-    // مصفوفة الألوان لـ 20 مرحلة كاملة
-    const stageColors = [
-        "#00ffcc", "#3498db", "#2ecc71", "#e74c3c", "#9b59b6", 
-        "#f1c40f", "#e67e22", "#1abc9c", "#34495e", "#c0392b",
-        "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#f39c12",
-        "#d35400", "#7f8c8d", "#dcdde1", "#44bd32", "#0652DD"
-    ];
+    const stageColors = ["#00ffcc", "#3498db", "#2ecc71", "#e74c3c", "#9b59b6", "#f1c40f", "#e67e22", "#1abc9c", "#34495e", "#c0392b", "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#f39c12", "#d35400", "#7f8c8d", "#dcdde1", "#44bd32", "#0652DD"];
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
@@ -55,17 +51,17 @@
     window.initGame = function() {
         overlay.style.display = 'none';
         dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -300;
-        obs = []; items = []; house = null;
-        active = true; started = false;
+        obs = []; items = []; house = null; active = true; started = false;
         document.getElementById('lvlName').innerText = "المرحلة " + (level + 1);
     };
 
     function loop() {
         ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        frame++;
 
         if (active && started) {
             p.v += 0.52; p.y += p.v; dist -= 0.8;
-            m.y += (p.y - m.y) * 0.05; // الذئب يتبع القطة
+            m.y += (p.y - m.y) * 0.05;
             m.x = Math.min(p.x - 140, m.x + (0.5 + level * 0.1));
 
             // الاهتزاز عند الاقتراب
@@ -89,7 +85,7 @@
                 house.x -= (6.5 + level * 0.3);
                 if(Math.hypot(p.x-house.x, p.y-house.y) < 80) {
                     level = (level + 1) % 20; active = false;
-                    document.getElementById('msg').innerText = "تم اجتياز المرحلة " + level;
+                    document.getElementById('msg').innerText = "رائع! المرحلة القادمة: " + (level+1);
                     overlay.style.display = 'flex';
                 }
             }
@@ -111,7 +107,7 @@
             ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
         });
 
-        // رسم السمك والكوخ والحيوانات
+        // رسم السمك والكوخ
         if(house) { ctx.font = "60px Arial"; ctx.fillText("🏡", house.x, house.y + 60); }
         items.forEach((f, i) => {
             f.x -= (6.5 + level * 0.3);
@@ -119,8 +115,14 @@
             if(Math.hypot(p.x-f.x, p.y-f.y) < 50) { fish+=10; items.splice(i,1); }
         });
 
+        // رسم الذئب بجسم كامل
         if(wolfImg.complete) ctx.drawImage(wolfImg, m.x, m.y, 160, 100);
-        if(catImg.complete) ctx.drawImage(catImg, p.x, p.y, 100, 100);
+
+        // رسم القطة بأسلوب الـ Reel (حركة مطاطية مرحة)
+        if(catImg.complete) {
+            let stretch = Math.abs(p.v) * 2; // تمدد الصورة بناءً على السرعة
+            ctx.drawImage(catImg, p.x, p.y - stretch/2, 100, 100 + stretch);
+        }
 
         requestAnimationFrame(loop);
     }
