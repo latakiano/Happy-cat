@@ -3,33 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Escape: Pro Mobile</title>
+    <title>Himalayan Cat: The Best Code</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #050505; touch-action: none; font-family: 'Segoe UI', sans-serif; }
-        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
-        .bar { width: 85%; height: 16px; background: #222; margin: 8px auto; border-radius: 20px; border: 2px solid #444; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00ffcc, #0099ff); transition: width 0.3s; }
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; text-align: center; padding: 20px; }
-        button { padding: 22px 60px; font-size: 26px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 8px 0 #1e8449; }
-        button:active { transform: translateY(4px); box-shadow: none; }
-        .stats { font-size: 20px; font-weight: bold; color: #f1c40f; display: flex; justify-content: center; gap: 20px; }
+        body { margin: 0; overflow: hidden; background: #050505; touch-action: none; font-family: sans-serif; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
+        .bar { width: 80%; height: 14px; background: #222; margin: 5px auto; border-radius: 10px; border: 1px solid #444; overflow: hidden; }
+        #fill { width: 0%; height: 100%; background: #00ffcc; transition: width 0.2s; }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; text-align: center; }
+        button { padding: 20px 50px; font-size: 24px; cursor: pointer; background: #e67e22; color: white; border: none; border-radius: 50px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlName" style="font-size: 28px; font-weight: bold; color: #fff;">المرحلة 1</div>
+    <div id="lvlName" style="font-size: 26px; font-weight: bold;">المرحلة 1</div>
     <div class="bar"><div id="fill"></div></div>
-    <div class="stats">
-        <span>🐠 <span id="fCount">0</span></span>
-        <span>🏁 <span id="dCount">1000</span>m</span>
-    </div>
+    <div style="color:#f1c40f; font-weight:bold;">🐠: <span id="fCount">0</span> | 🏁: <span id="dCount">1000</span>m</div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg" style="font-size: 40px; margin-bottom: 10px;">هروب القطة الذكي 🐾</h1>
-    <p id="subMsg" style="font-size: 20px; margin-bottom: 30px;">اضغط مطولاً للقفز عالياً! اهرب من الذئب</p>
-    <button onclick="initGame()">ابدأ المغامرة 🚀</button>
+    <h1 id="msg">مغامرة الهروب 🐾</h1>
+    <p>اهرب من الذئب الحقيقي نحو الكوخ!</p>
+    <button onclick="initGame()">انطلق الآن 🚀</button>
 </div>
 
 <canvas id="c"></canvas>
@@ -39,112 +34,67 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
 
-    let active = false, started = false, level = 0, fish = 0, dist = 1000, frame = 0;
-    let p = { x: 150, y: 0, v: 0 }, m = { x: -300, y: 0 }, obs = [], items = [], house = null;
-    let touchTime = 0;
+    // مراجع الصور للأجسام الكاملة
+    const catImg = new Image(); catImg.src = 'https://i.imgur.com/uG9pY1p.png';
+    const wolfImg = new Image(); wolfImg.src = 'https://i.imgur.com/vH6ZzR6.png';
 
-    // ألوان الـ 20 مرحلة (مستوحاة من ثيمات kitty)
-    const stageColors = ["#00ffcc", "#3498db", "#f1c40f", "#e74c3c", "#9b59b6", "#1abc9c", "#e67e22", "#bdc3c7", "#2ecc71", "#f39c12", "#d35400", "#c0392b", "#8e44ad", "#2980b9", "#16a085", "#27ae60", "#2c3e50", "#7f8c8d", "#ff4500", "#00ffff"];
+    let active = false, started = false, level = 0, fish = 0, dist = 1000;
+    let p = { x: 180, y: 0, v: 0 }, m = { x: -300, y: 0 }, obs = [], items = [], house = null;
 
-    function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
-    }
+    // مصفوفة الألوان لـ 20 مرحلة كاملة
+    const stageColors = [
+        "#00ffcc", "#3498db", "#2ecc71", "#e74c3c", "#9b59b6", 
+        "#f1c40f", "#e67e22", "#1abc9c", "#34495e", "#c0392b",
+        "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#f39c12",
+        "#d35400", "#7f8c8d", "#dcdde1", "#44bd32", "#0652DD"
+    ];
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
-
-    // رسم القطة الهملايا (جسم كامل)
-    function drawCat(x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-        let legMove = Math.sin(frame * 0.2) * 10;
-        // الأرجل
-        ctx.fillStyle = "#5D4037";
-        ctx.fillRect(10, 35, 10, 15 + legMove);
-        ctx.fillRect(40, 35, 10, 15 - legMove);
-        // الجسم
-        ctx.fillStyle = "#F5F5DC";
-        ctx.beginPath(); ctx.ellipse(30, 20, 38, 25, 0, 0, Math.PI*2); ctx.fill();
-        // الذيل
-        ctx.strokeStyle = "#5D4037"; ctx.lineWidth = 10; ctx.lineCap="round";
-        ctx.beginPath(); ctx.moveTo(0, 20); ctx.quadraticCurveTo(-20, -10, 5, -15); ctx.stroke();
-        // الرأس
-        ctx.fillStyle = "#5D4037"; ctx.beginPath(); ctx.arc(60, 10, 18, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#00d2ff"; // عيون زرقاء
-        ctx.beginPath(); ctx.arc(65, 8, 4, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
-    }
-
-    // رسم الذئب (جسم كامل مطارد)
-    function drawWolf(x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-        let legMove = Math.sin(frame * 0.3) * 12;
-        ctx.fillStyle = "#333";
-        ctx.fillRect(20, 40, 12, 25 + legMove);
-        ctx.fillRect(70, 40, 12, 25 - legMove);
-        // جسم الذئب
-        ctx.fillStyle = "#666";
-        ctx.beginPath(); ctx.ellipse(50, 25, 60, 30, 0, 0, Math.PI*2); ctx.fill();
-        // الرأس المفترس
-        ctx.beginPath(); ctx.moveTo(100, 5); ctx.lineTo(150, 25); ctx.lineTo(100, 45); ctx.fill();
-        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(120, 20, 5, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
-    }
 
     window.initGame = function() {
         overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -400;
-        obs = []; items = []; house = null; frame = 0;
+        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -300;
+        obs = []; items = []; house = null;
         active = true; started = false;
         document.getElementById('lvlName').innerText = "المرحلة " + (level + 1);
-        document.getElementById('lvlName').style.color = stageColors[level % 20];
     };
 
     function loop() {
-        ctx.fillStyle = "#050505"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        frame++;
+        ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (active && started) {
-            p.v += 0.55; p.y += p.v; 
-            if (dist > 0) dist -= (0.8 + level * 0.05);
+            p.v += 0.52; p.y += p.v; dist -= 0.8;
+            m.y += (p.y - m.y) * 0.05; // الذئب يتبع القطة
+            m.x = Math.min(p.x - 140, m.x + (0.5 + level * 0.1));
 
-            m.y += (p.y - m.y) * 0.07;
-            m.x = Math.min(p.x - 130, m.x + (0.6 + level * 0.15));
+            // الاهتزاز عند الاقتراب
+            if (p.x - m.x < 160 && "vibrate" in navigator) navigator.vibrate(20);
 
-            // نظام الاهتزاز عند اقتراب الذئب
-            if (p.x - m.x < 180 && frame % 10 === 0 && "vibrate" in navigator) {
-                navigator.vibrate(30); 
-            }
-
-            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 400)) {
+            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350)) {
                 let h = Math.random() * (canvas.height - 350) + 100;
-                obs.push({ x: canvas.width, y: h, g: 300 - (level * 5) });
-                items.push({ x: canvas.width + 150, y: h + 150 });
+                obs.push({ x: canvas.width, y: h, g: 300 - (level * 2) });
+                items.push({ x: canvas.width + 120, y: h + 150 });
             }
 
-            if (dist <= 0 && !house) house = { x: canvas.width, y: p.y - 60 };
+            if (dist <= 0 && !house) house = { x: canvas.width, y: p.y - 50 };
 
             obs.forEach((o, i) => {
-                o.x -= (7 + level * 0.4);
-                if(p.x+80 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+60 > o.y+o.g)) active = false;
+                o.x -= (6.5 + level * 0.3);
+                if(p.x+70 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+60 > o.y+o.g)) active = false;
                 if(o.x < -100) obs.splice(i, 1);
             });
 
             if(house) {
-                house.x -= (7 + level * 0.4);
-                if(Math.hypot(p.x-house.x, p.y-house.y) < 100) {
-                    level++;
-                    if(level >= 20) {
-                        document.getElementById('msg').innerText = "أنت ملك الهروب! 👑";
-                        level = 0;
-                    } else {
-                        document.getElementById('msg').innerText = "نجوت! المرحلة " + (level+1);
-                    }
-                    active = false; overlay.style.display = 'flex';
+                house.x -= (6.5 + level * 0.3);
+                if(Math.hypot(p.x-house.x, p.y-house.y) < 80) {
+                    level = (level + 1) % 20; active = false;
+                    document.getElementById('msg').innerText = "تم اجتياز المرحلة " + level;
+                    overlay.style.display = 'flex';
                 }
             }
 
-            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 110) active = false;
+            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 100) active = false;
             if(!active && dist > 0) { 
                 document.getElementById('msg').innerText = "أمسك بك الذئب! 🐺"; 
                 if("vibrate" in navigator) navigator.vibrate([100, 50, 100]);
@@ -153,48 +103,31 @@
 
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
             document.getElementById('dCount').innerText = Math.max(0, Math.floor(dist));
-            document.getElementById('fCount').innerText = fish;
         }
 
-        // رسم الحواجز الملونة
+        // رسم الحواجز
         obs.forEach(o => {
             ctx.fillStyle = stageColors[level % 20];
-            ctx.shadowBlur = 15; ctx.shadowColor = stageColors[level % 20];
-            ctx.fillRect(o.x, 0, 75, o.y); ctx.fillRect(o.x, o.y+o.g, 75, canvas.height);
-            ctx.shadowBlur = 0;
+            ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
         });
 
-        if(house) { ctx.font = "80px Arial"; ctx.fillText("🏡", house.x, house.y + 80); }
+        // رسم السمك والكوخ والحيوانات
+        if(house) { ctx.font = "60px Arial"; ctx.fillText("🏡", house.x, house.y + 60); }
         items.forEach((f, i) => {
-            f.x -= (started ? (7 + level * 0.4) : 0);
-            ctx.font = "45px Arial"; ctx.fillText("🐠", f.x, f.y);
-            if(Math.hypot(p.x-f.x, p.y-f.y) < 60) { fish+=50; items.splice(i,1); if("vibrate" in navigator) navigator.vibrate(20); }
+            f.x -= (6.5 + level * 0.3);
+            ctx.font = "40px Arial"; ctx.fillText("🐠", f.x, f.y);
+            if(Math.hypot(p.x-f.x, p.y-f.y) < 50) { fish+=10; items.splice(i,1); }
         });
 
-        drawWolf(m.x, m.y);
-        drawCat(p.x, p.y);
+        if(wolfImg.complete) ctx.drawImage(wolfImg, m.x, m.y, 160, 100);
+        if(catImg.complete) ctx.drawImage(catImg, p.x, p.y, 100, 100);
 
         requestAnimationFrame(loop);
     }
 
-    // نظام تحكم الجوال المتطور
-    window.addEventListener('touchstart', (e) => {
-        if(e.target.tagName !== 'BUTTON') {
-            e.preventDefault();
-            touchTime = Date.now();
-            started = true; active = true;
-        }
-    }, {passive: false});
-
-    window.addEventListener('touchend', (e) => {
-        let hold = Date.now() - touchTime;
-        let power = Math.min(13, 6 + (hold / 40)); // قفزة متغيرة
-        p.v = -power;
-    });
-
-    // دعم الماوس للكمبيوتر أيضاً
-    window.addEventListener('mousedown', () => { touchTime = Date.now(); started = true; active = true; });
-    window.addEventListener('mouseup', () => { p.v = -Math.min(13, 6 + (Date.now() - touchTime)/40); });
+    const jump = () => { if(active) { started = true; p.v = -9.5; } };
+    window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'BUTTON') { e.preventDefault(); jump(); } }, {passive: false});
+    window.addEventListener('mousedown', jump);
 
     loop();
 </script>
