@@ -114,7 +114,7 @@
             }
 
             if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) active = false;
-            if(!active && dist > 0) { document.getElementById('msg').innerText = "أمسك بك الوحش! 🐺"; overlay.style.display = 'flex'; }
+            if(!active && dist > 0) { document.getElementById('msg').innerText = "أمسك بك الوحش! 🐈"; overlay.style.display = 'flex'; }
 
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
             document.getElementById('fCount').innerText = fish;
@@ -130,14 +130,14 @@
         // رسم العناصر (سمك وكوبونات)
         ctx.font = "40px Arial";
         items.forEach(f => {
-            ctx.fillText(f.type === 'fish' ? "🐟" : "🎫", f.x, f.y);
+            ctx.fillText(f.type === 'fish' ? "🐟" : "💰", f.x, f.y);
         });
 
         // رسم الكوخ
         if(house) ctx.fillText("🏠", house.x, house.y + 40);
 
         // رسم الوحش (ذئب)
-        ctx.fillText("🐺", m.x + 80, m.y + 60);
+        ctx.fillText("🐈‍⬛", m.x + 80, m.y + 60);
 
         // رسم القطة الهملايا (قطة حقيقية)
         ctx.fillText("🐈", p.x, p.y + 40);
