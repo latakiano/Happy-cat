@@ -3,20 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat Adventure</title>
+    <title>Himalayan Cat Adventure Pro</title>
     <style>
-        /* تنسيق الصفحة العام */
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
-        
-        /* واجهة المستخدم (السمك والمسافة) */
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: 'Segoe UI', sans-serif; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
         .bar { width: 80%; height: 15px; background: #333; margin: 5px auto; border: 1px solid #fff; border-radius: 10px; overflow: hidden; }
         #fill { width: 0%; height: 100%; background: #00ffcc; }
-        
-        /* القائمة التي تظهر عند البداية أو الخسارة */
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; }
-        button { padding: 20px 60px; font-size: 25px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 0 #1e8449; }
+        button { padding: 18px 50px; font-size: 25px; cursor: pointer; background: #e67e22; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 0 #d35400; }
         button:active { transform: translateY(4px); box-shadow: none; }
+        .coupon-pop { position: absolute; color: #f1c40f; font-weight: bold; animation: fly 1s forwards; pointer-events: none; }
+        @keyframes fly { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
     </style>
 </head>
 <body>
@@ -24,11 +21,12 @@
 <div id="ui">
     <div id="lvlName" style="font-size: 24px; font-weight: bold;">المرحلة 1</div>
     <div class="bar"><div id="fill"></div></div>
-    <div style="color:#f1c40f; font-weight: bold;">🐟: <span id="fCount">0</span> | 🏁: <span id="dCount">1000</span>m</div>
+    <div style="color:#f1c40f; font-size: 20px;">🐟 السمك: <span id="fCount">0</span> | 🚩 المسافة: <span id="dCount">1000</span></div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg">مغامرة القطة هملايا 🐾</h1>
+    <h1 id="msg" style="font-size: 40px;">مغامرة القطة هملايا 🐾</h1>
+    <p>اجمع السمك وادخل الكوخ لتنتقل للمرحلة التالية!</p>
     <button id="startBtn" onclick="initGame()">إبدأ اللعب 🚀</button>
 </div>
 
@@ -39,124 +37,120 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
     
-    let active = false, started = false, level = 0, fish = 0, dist = 1000;
-    let p = { x: 80, y: 0, v: 0 }, m = { x: -200, y: 0 }, obs = [], items = [];
+    // إنشاء صوت اصطناعي للنقود (يعمل بدون ملفات خارجية)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playCoinSound() {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
 
-    // ترتيب ألوان الحواجز لـ 20 مرحلة
+    let active = false, started = false, level = 0, fish = 0, dist = 1000;
+    let p = { x: 80, y: 0, v: 0 }, m = { x: -250, y: 0 }, obs = [], items = [], house = null;
+
     const colors = ["#f1c40f", "#3498db", "#2ecc71", "#111111", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
 
-    function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
-    }
-    window.addEventListener('resize', resize); 
-    resize();
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-    // تشغيل اللعبة عند الضغط على الزر
     window.initGame = function() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
         overlay.style.display = 'none';
-        dist = 1000; 
-        p.y = canvas.height / 2; 
-        p.v = 0; 
-        m.x = -250;
-        obs = []; 
-        items = [];
+        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -250;
+        obs = []; items = []; house = null;
         document.getElementById('lvlName').innerText = "المرحلة " + (level + 1);
-        active = true; 
-        started = false;
+        active = true; started = false;
     };
 
     function loop() {
-        ctx.fillStyle = "#0a0a0a"; 
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (active && started) {
-            p.v += 0.5; 
-            p.y += p.v; 
-            dist -= 1;
-            m.y += (p.y - m.y) * 0.05; 
-            m.x = Math.min(p.x - 140, m.x + 0.4);
+            p.v += 0.5; p.y += p.v; 
+            if (dist > 0) dist -= 1;
+            m.y += (p.y - m.y) * 0.05; m.x = Math.min(p.x - 140, m.x + 0.45);
 
-            // إنشاء الحواجز والسمك
-            if (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350) {
+            // إنشاء العوائق والسمك
+            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350)) {
                 let h = Math.random() * (canvas.height - 350) + 100;
                 obs.push({ x: canvas.width, y: h, g: 300 });
-                items.push({ x: canvas.width + 120, y: h + 150 });
+                items.push({ x: canvas.width + 120, y: h + 150, type: 'fish' });
+                if(Math.random() > 0.8) items.push({ x: canvas.width + 200, y: h - 50, type: 'coupon' });
             }
 
-            // تحريك الحواجز وفحص التصادم
+            // الكوخ يظهر في نهاية المرحلة
+            if (dist <= 0 && !house) {
+                house = { x: canvas.width, y: p.y - 50 };
+            }
+
             obs.forEach((o, i) => {
-                o.x -= (6 + level * 0.2);
-                if(p.x+50 > o.x && p.x < o.x+60 && (p.y < o.y || p.y+40 > o.y+o.g)) active = false;
+                o.x -= (6 + level * 0.3);
+                if(p.x+40 > o.x && p.x < o.x+60 && (p.y < o.y || p.y+40 > o.y+o.g)) active = false;
                 if(o.x < -100) obs.splice(i, 1);
             });
 
-            // تحريك السمك وجمعه
             items.forEach((f, i) => {
-                f.x -= (6 + level * 0.2);
-                if(Math.hypot(p.x+25-f.x, p.y+25-f.y) < 45) { 
-                    fish += 100; 
-                    items.splice(i, 1); 
+                f.x -= (6 + level * 0.3);
+                if(Math.hypot(p.x-f.x, p.y-f.y) < 50) {
+                    if(f.type === 'fish') { fish += 100; playCoinSound(); }
+                    else { fish += 500; } // كوبون
+                    items.splice(i, 1);
                 }
             });
 
-            // فحص الخسارة أو الفوز بالمرحلة
-            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) active = false;
-            if(!active) { 
-                document.getElementById('msg').innerText = "أمسك بك الوحش!"; 
-                overlay.style.display = 'flex'; 
-            }
-            if(dist <= 0) { 
-                level = (level + 1) % 20; 
-                active = false; 
-                document.getElementById('msg').innerText = "أحسنت! للمرحلة " + (level+1); 
-                overlay.style.display = 'flex'; 
+            if(house) {
+                house.x -= (6 + level * 0.3);
+                if(Math.hypot(p.x-house.x, p.y-house.y) < 60) {
+                    level = (level + 1) % 20; active = false;
+                    document.getElementById('msg').innerText = "دخلت الكوخ بسلام! 🏠🏆";
+                    overlay.style.display = 'flex';
+                }
             }
 
-            // تحديث واجهة المستخدم
+            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) active = false;
+            if(!active && dist > 0) { document.getElementById('msg').innerText = "أمسك بك الوحش! 🐺"; overlay.style.display = 'flex'; }
+
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
             document.getElementById('fCount').innerText = fish;
             document.getElementById('dCount').innerText = Math.max(0, Math.floor(dist));
         }
 
-        // رسم الحواجز بالألوان المطلوبة
+        // رسم الحواجز
         obs.forEach(o => {
             ctx.fillStyle = colors[level % 10];
-            ctx.fillRect(o.x, 0, 60, o.y); 
-            ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
+            ctx.fillRect(o.x, 0, 60, o.y); ctx.fillRect(o.x, o.y+o.g, 60, canvas.height);
         });
 
-        // رسم السمك
-        items.forEach(f => { 
-            ctx.fillStyle = "#FF8C00"; 
-            ctx.beginPath(); ctx.ellipse(f.x, f.y, 15, 9, 0, 0, Math.PI*2); ctx.fill(); 
+        // رسم العناصر (سمك وكوبونات)
+        ctx.font = "40px Arial";
+        items.forEach(f => {
+            ctx.fillText(f.type === 'fish' ? "🐟" : "🎫", f.x, f.y);
         });
 
-        // رسم الوحش
-        ctx.fillStyle = "red"; 
-        ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x+100, m.y+50); ctx.lineTo(m.x, m.y+100); ctx.fill();
+        // رسم الكوخ
+        if(house) ctx.fillText("🏠", house.x, house.y + 40);
 
-        // رسم القطة هملايا
-        ctx.fillStyle = "#FDF5E6"; 
-        ctx.beginPath(); ctx.ellipse(p.x+25, p.y+25, 25, 18, 0, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#4E342E"; 
-        ctx.beginPath(); ctx.arc(p.x+40, p.y+20, 12, 0, Math.PI*2); ctx.fill();
+        // رسم الوحش (ذئب)
+        ctx.fillText("🐺", m.x + 80, m.y + 60);
+
+        // رسم القطة الهملايا (قطة حقيقية)
+        ctx.fillText("🐈", p.x, p.y + 40);
 
         requestAnimationFrame(loop);
     }
 
-    // منطق القفز
     const jump = (e) => { 
         if (e.target.tagName === 'BUTTON') return;
         if(active) { started = true; p.v = -9; } 
     };
     window.addEventListener('mousedown', jump);
-    window.addEventListener('touchstart', (e) => { 
-        if(e.target.tagName !== 'BUTTON') { 
-            e.preventDefault(); 
-            jump(e); 
-        } 
-    }, {passive: false});
+    window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'BUTTON') { e.preventDefault(); jump(e); } }, {passive: false});
 
     loop();
 </script>
