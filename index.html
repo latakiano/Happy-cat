@@ -1,166 +1,175 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat: The Golden Edition</title>
+    <title>Himalayan Cat Gold</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; touch-action: none; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
-        .bar { width: 80%; height: 18px; background: rgba(255,255,255,0.2); margin: 10px auto; border-radius: 10px; border: 2px solid #fff; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #f1c40f, #e67e22); transition: 0.1s; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 100; pointer-events: none; }
+        .progress-bar { width: 80%; height: 12px; background: #333; margin: 5px auto; border-radius: 10px; border: 1px solid #fff; }
+        #fill { width: 0%; height: 100%; background: #00ffcc; border-radius: 10px; }
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.8); display: flex; flex-direction: column; 
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; color: white; z-index: 1000; 
         }
-        button { 
-            padding: 15px 45px; font-size: 24px; cursor: pointer; border-radius: 50px; 
-            background: #27ae60; color: white; border: none; font-weight: bold; margin: 10px;
-            box-shadow: 0 5px 0 #1e8449;
+        .btn { 
+            padding: 15px 40px; font-size: 24px; cursor: pointer; border-radius: 50px; 
+            background: #e67e22; color: white; border: none; font-weight: bold;
+            box-shadow: 0 5px 0 #d35400; margin-top: 20px;
         }
-        .stat { color:#f1c40f; font-size: 18px; font-weight: bold; }
+        .score { color:#f1c40f; font-size: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlName" style="font-size: 24px; font-weight: bold;">المرحلة 1</div>
-    <div class="bar"><div id="fill"></div></div>
-    <div class="stat">🐟 السمك: <span id="totalFish">0</span> | 🏁 المسافة: <span id="dist">1000</span>m</div>
+    <div id="lvlName" style="font-size: 22px; margin-bottom: 5px;">المرحلة 1</div>
+    <div class="progress-bar"><div id="fill"></div></div>
+    <div class="score">🐟 السمك: <span id="fishCount">0</span> | 🏁 المسافة: <span id="distance">1000</span></div>
 </div>
 
 <div id="overlay">
     <h1 id="msg">مغامرة القطة هملايا 🐾</h1>
-    <p>ساعد القطة على الهروب من الوحوش!</p>
-    <button onclick="setupStage()">إبدأ اللعب 🚀</button>
+    <p>اضغط للقفز والهروب من الوحش!</p>
+    <button class="btn" onclick="startGame()">إبدأ اللعب الآن 🚀</button>
 </div>
 
-<canvas id="c"></canvas>
+<canvas id="gameCanvas"></canvas>
 
 <script>
-    const canvas = document.getElementById('c');
+    const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
-    let totalFish = 0, audioCtx;
+    const fill = document.getElementById('fill');
+    
+    let gameActive = false, started = false;
+    let fish = 0, level = 0, dist = 1000;
+    let cat = { x: 80, y: 0, v: 0, w: 70, h: 50 };
+    let monster = { x: -200, y: 0 };
+    let pipes = [], food = [];
 
-    // ألوان الحواجز بالترتيب المطلوب
     const barrierColors = ["#f1c40f", "#3498db", "#2ecc71", "#111111", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize); resize();
-
-    // مراحل اللعبة (20 مرحلة)
-    const stages = [];
-    for(let i=0; i<20; i++) {
-        stages.push({
-            n: `المرحلة ${i+1}`,
-            bg: i % 2 === 0 ? "#1a1a1a" : "#0d0d0d",
-            col: barrierColors[i % barrierColors.length],
-            s: 5 + (i * 0.5)
-        });
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
     }
+    window.addEventListener('resize', resize);
+    resize();
 
-    let cur = 0, dist = 1000, active = false, started = false;
-    let p = { x: 120, y: 0, v: 0 }, m = { x: -200, y: 0 }, obs = [], items = [];
-
-    // وظيفة رسم القطة الهملايا الحقيقية برمجياً لضمان ظهورها
-    function drawHimalayan(x, y) {
+    function drawCat(x, y) {
         ctx.save();
-        ctx.translate(x, y);
-        // الجسم (أبيض كريمي)
+        // الجسم (أبيض كريمي للهملايا)
         ctx.fillStyle = "#FDF5E6";
-        ctx.beginPath(); ctx.ellipse(40, 40, 30, 22, 0, 0, Math.PI*2); ctx.fill();
-        // الرأس
-        ctx.beginPath(); ctx.arc(60, 25, 18, 0, Math.PI*2); ctx.fill();
-        // الوجه (قناع الهملايا البني)
-        ctx.fillStyle = "#4E342E";
-        ctx.beginPath(); ctx.arc(65, 25, 11, 0, Math.PI*2); ctx.fill();
-        // العيون (أزرق هملايا)
+        ctx.beginPath(); ctx.ellipse(x + 30, y + 30, 30, 20, 0, 0, Math.PI * 2); ctx.fill();
+        // الوجه والأذنين (بني غامق - سيال بوينت)
+        ctx.fillStyle = "#3E2723";
+        ctx.beginPath(); ctx.arc(x + 50, y + 20, 15, 0, Math.PI * 2); ctx.fill(); // الرأس
+        ctx.beginPath(); ctx.moveTo(x+40, y+10); ctx.lineTo(x+45, y); ctx.lineTo(x+50, y+10); ctx.fill(); // أذن
+        // العين الزرقاء المميزة
         ctx.fillStyle = "#00BFFF";
-        ctx.beginPath(); ctx.arc(70, 22, 3, 0, Math.PI*2); ctx.fill();
-        // الأذنين
-        ctx.fillStyle = "#4E342E";
-        ctx.beginPath(); ctx.moveTo(55, 15); ctx.lineTo(60, 2); ctx.lineTo(65, 15); ctx.fill();
-        // الذيل
-        ctx.strokeStyle = "#4E342E"; ctx.lineWidth = 10; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(15, 40); ctx.quadraticCurveTo(-10, 10, 15, 5); ctx.stroke();
+        ctx.beginPath(); ctx.arc(x + 55, y + 18, 3, 0, Math.PI * 2); ctx.fill();
+        // الذيل الكثيف
+        ctx.strokeStyle = "#3E2723"; ctx.lineWidth = 10; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(x+10, y+35); ctx.quadraticCurveTo(x-10, y+10, x+5, y+5); ctx.stroke();
         ctx.restore();
     }
 
-    // رسم السمكة (واضحة وحقيقية)
-    function drawRealFish(x, y) {
-        ctx.fillStyle = "#FF8C00";
-        ctx.beginPath(); ctx.ellipse(x, y, 20, 12, 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(x-15, y); ctx.lineTo(x-30, y-15); ctx.lineTo(x-30, y+15); ctx.fill();
-        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(x+12, y-3, 3, 0, Math.PI*2); ctx.fill();
-    }
-
-    // رسم الوحش (وحش مرعب)
     function drawMonster(x, y) {
-        ctx.fillStyle = "#222";
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+130, y+65); ctx.lineTo(x, y+130); ctx.fill();
-        ctx.fillStyle = "red";
-        ctx.beginPath(); ctx.arc(x+90, y+50, 7, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x+90, y+80, 7, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#1a1a1a";
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+140, y+60); ctx.lineTo(x, y+120); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(x+90, y+45, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+90, y+75, 6, 0, Math.PI*2); ctx.fill();
     }
 
-    window.setupStage = function() {
+    function drawFish(x, y) {
+        ctx.fillStyle = "#FF8C00";
+        ctx.beginPath(); ctx.ellipse(x, y, 18, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(x-12, y); ctx.lineTo(x-25, y-12); ctx.lineTo(x-25, y+12); ctx.closePath(); ctx.fill();
+    }
+
+    function startGame() {
         overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -200;
-        obs = []; items = [];
-        document.getElementById('lvlName').innerText = stages[cur].n;
-        active = true; started = false;
-        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    };
+        cat.y = canvas.height / 2;
+        cat.v = 0;
+        monster.x = -200;
+        pipes = []; food = [];
+        dist = 1000;
+        gameActive = true;
+        started = false;
+        document.getElementById('lvlName').innerText = `المرحلة ${level + 1}`;
+    }
 
-    function loop() {
-        const s = stages[cur];
-        ctx.fillStyle = s.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function gameOver(win = false) {
+        gameActive = false;
+        document.getElementById('msg').innerText = win ? "أحسنت! للمرحلة التالية 🏆" : "أمسك بك الوحش! 🙀";
+        if (win) level = (level + 1) % 20;
+        overlay.style.display = 'flex';
+    }
 
-        if (active && started) {
-            p.v += 0.5; p.y += p.v; dist -= s.s / 10;
-            m.y += (p.y - m.y) * 0.05; m.x = Math.min(p.x - 160, m.x + 0.4);
+    function update() {
+        if (!gameActive) return;
+        if (started) {
+            cat.v += 0.55;
+            cat.y += cat.v;
+            dist -= 0.8;
+            monster.y += (cat.y - monster.y) * 0.06;
+            monster.x = Math.min(cat.x - 140, monster.x + 0.5);
 
-            if (dist > 50 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 380)) {
-                let gapY = Math.random() * (canvas.height - 400) + 100;
-                obs.push({ x: canvas.width, y: gapY, g: 300 });
-                items.push({ x: canvas.width + 120, y: gapY + 150 });
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 350) {
+                let gapPos = Math.random() * (canvas.height - 350) + 100;
+                pipes.push({ x: canvas.width, y: gapPos, g: 300 });
+                food.push({ x: canvas.width + 100, y: gapPos + 150 });
             }
 
-            obs.forEach((o, i) => {
-                o.x -= s.s;
-                if(p.x+70 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+60 > o.y+o.g)) active = false;
-                if(o.x < -100) obs.splice(i, 1);
+            pipes.forEach((p, i) => {
+                p.x -= 6;
+                if (cat.x + 50 > p.x && cat.x < p.x + 70 && (cat.y < p.y || cat.y + 40 > p.y + p.g)) gameOver();
+                if (p.x < -100) pipes.splice(i, 1);
             });
 
-            items.forEach((f, i) => {
-                f.x -= s.s;
-                if(Math.hypot(p.x+40-f.x, p.y+40-f.y) < 55) { totalFish += 100; items.splice(i, 1); }
+            food.forEach((f, i) => {
+                f.x -= 6;
+                if (Math.hypot(cat.x + 30 - f.x, cat.y + 30 - f.y) < 50) {
+                    fish += 100;
+                    food.splice(i, 1);
+                    document.getElementById('fishCount').innerText = fish;
+                }
             });
 
-            if(p.y > canvas.height || p.y < -100 || p.x < m.x + 100) active = false;
-            if(!active) { document.getElementById('msg').innerText = "خسرت! الوحش أمسك بك"; overlay.style.display = 'flex'; }
+            if (cat.y > canvas.height || cat.y < -100 || cat.x < monster.x + 110) gameOver();
+            if (dist <= 0) gameOver(true);
 
-            if (dist <= 0) { cur++; active = false; document.getElementById('msg').innerText = "رائع! للمرحلة القادمة"; overlay.style.display = 'flex'; }
-
-            document.getElementById('fill').style.width = (1 - (dist/1000))*100 + "%";
-            document.getElementById('totalFish').innerText = totalFish;
-            document.getElementById('dist').innerText = Math.max(0, Math.floor(dist));
+            fill.style.width = (1 - dist / 1000) * 100 + "%";
+            document.getElementById('distance').innerText = Math.max(0, Math.floor(dist));
         }
-
-        obs.forEach(o => { ctx.fillStyle = s.col; ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height); });
-        items.forEach(f => drawRealFish(f.x, f.y));
-        drawMonster(m.x, m.y);
-        drawHimalayan(p.x, p.y);
-
-        requestAnimationFrame(loop);
     }
 
-    const trigger = () => { if(active) started = true; p.v = -9.5; };
-    window.addEventListener('mousedown', trigger);
-    window.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); }, {passive: false});
-    loop();
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // رسم الحواجز
+        pipes.forEach(p => {
+            ctx.fillStyle = barrierColors[level % 10];
+            ctx.fillRect(p.x, 0, 70, p.y);
+            ctx.fillRect(p.x, p.y + p.g, 70, canvas.height);
+        });
+
+        food.forEach(f => drawFish(f.x, f.y));
+        drawMonster(monster.x, monster.y);
+        drawCat(cat.x, cat.y);
+
+        update();
+        requestAnimationFrame(render);
+    }
+
+    const input = () => { if (gameActive) { started = true; cat.v = -9.5; } };
+    window.addEventListener('mousedown', input);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); input(); }, { passive: false });
+
+    render();
 </script>
 </body>
 </html>
