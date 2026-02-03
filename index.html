@@ -3,31 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat Pro</title>
+    <title>Himalayan Cat Adventure - 20 Stages</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: Arial, sans-serif; touch-action: none; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
         .bar { width: 80%; height: 15px; background: rgba(255,255,255,0.2); margin: 5px auto; border-radius: 10px; border: 1px solid #fff; }
-        #fill { width: 0%; height: 100%; background: #00ffcc; transition: width 0.1s; }
+        #fill { width: 0%; height: 100%; background: #00ffcc; }
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; color: white; z-index: 1000; 
         }
-        button { padding: 15px 45px; font-size: 22px; cursor: pointer; border-radius: 50px; background: #e67e22; color: white; border: none; font-weight: bold; }
+        button { padding: 15px 45px; font-size: 22px; cursor: pointer; border-radius: 50px; background: #27ae60; color: white; border: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlName" style="font-size: 22px; font-weight: bold;">المرحلة 1</div>
+    <div id="lvlName" style="font-size: 24px; font-weight: bold;">المرحلة 1</div>
     <div class="bar"><div id="fill"></div></div>
-    <div style="color:#f1c40f; font-weight:bold;">🐟 السمك: <span id="fCount">0</span> | 🚩 الهدف: <span id="dCount">1000</span>m</div>
+    <div style="color:#f1c40f;">🐟 السمك: <span id="fCount">0</span> | 🏁 المسافة: <span id="dCount">1000</span>m</div>
 </div>
 
 <div id="overlay">
     <h1 id="msg">مغامرة القطة هملايا 🐾</h1>
-    <button onclick="setup()">إبدأ اللعب 🚀</button>
+    <button onclick="startGame()">إبدأ اللعب 🚀</button>
 </div>
 
 <canvas id="c"></canvas>
@@ -37,28 +37,23 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
     
-    let totalFish = 0, cur = 0, dist = 1000, active = false, started = false;
+    let totalFish = 0, curLevel = 0, dist = 1000, active = false, started = false;
     let p = { x: 100, y: 0, v: 0 }, m = { x: -250, y: 0 }, obs = [], items = [];
 
     // ألوان الحواجز المطلوبة بالترتيب
-    const barrierColors = ["#f1c40f", "#3498db", "#2ecc71", "#111111", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
+    const barrierColors = ["#f1c40f", "#3498db", "#2ecc71", "#000000", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
-    // رسم القطة الهملايا (أبيض كريمي + وجه داكن + عيون زرقاء)
+    // رسم القطة الهملايا برمجياً لضمان العمل
     function drawCat(x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.fillStyle = "#FDF5E6"; // الجسم
-        ctx.beginPath(); ctx.ellipse(35, 35, 30, 20, 0, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#3E2723"; // القناع
-        ctx.beginPath(); ctx.arc(52, 22, 14, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#00BFFF"; // العيون
-        ctx.beginPath(); ctx.arc(58, 20, 3, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "#3E2723"; // الأذن
-        ctx.beginPath(); ctx.moveTo(45, 12); ctx.lineTo(50, 0); ctx.lineTo(55, 12); ctx.fill();
-        ctx.restore();
+        ctx.fillStyle = "#FDF5E6"; // لون الجسم
+        ctx.beginPath(); ctx.ellipse(x+35, y+35, 30, 20, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#4E342E"; // الوجه الداكن
+        ctx.beginPath(); ctx.arc(x+52, y+25, 15, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#00BFFF"; // العين الزرقاء
+        ctx.beginPath(); ctx.arc(x+58, y+22, 3, 0, Math.PI*2); ctx.fill();
     }
 
     // رسم السمكة
@@ -72,23 +67,23 @@
     function drawMonster(x, y) {
         ctx.fillStyle = "#222";
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+130, y+60); ctx.lineTo(x, y+120); ctx.fill();
-        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(x+90, y+45, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(x+90, y+50, 6, 0, Math.PI*2); ctx.fill();
     }
 
-    window.setup = function() {
+    window.startGame = function() {
         overlay.style.display = 'none';
         dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -250;
         obs = []; items = [];
-        document.getElementById('lvlName').innerText = `المرحلة ${cur+1}`;
+        document.getElementById('lvlName').innerText = `المرحلة ${curLevel+1}`;
         active = true; started = false;
     };
 
     function loop() {
-        ctx.fillStyle = "#0d0d0d"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (active && started) {
-            p.v += 0.52; p.y += p.v; dist -= 0.8;
-            m.y += (p.y - m.y) * 0.05; m.x = Math.min(p.x - 150, m.x + 0.45);
+            p.v += 0.5; p.y += p.v; dist -= 1;
+            m.y += (p.y - m.y) * 0.05; m.x = Math.min(p.x - 150, m.x + 0.4);
 
             if (obs.length === 0 || obs[obs.length-1].x < canvas.width - 380) {
                 let gy = Math.random() * (canvas.height - 350) + 100;
@@ -97,28 +92,40 @@
             }
 
             obs.forEach((o, i) => {
-                o.x -= 6.5;
-                if(p.x+60 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+45 > o.y+o.g)) active = false;
+                o.x -= (6 + curLevel * 0.2);
+                if(p.x+60 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+50 > o.y+o.g)) active = false;
                 if(o.x < -100) obs.splice(i, 1);
             });
 
             items.forEach((f, i) => {
-                f.x -= 6.5;
+                f.x -= (6 + curLevel * 0.2);
                 if(Math.hypot(p.x+35-f.x, p.y+35-f.y) < 50) { totalFish += 100; items.splice(i, 1); }
             });
 
             if(p.y > canvas.height || p.y < -50 || p.x < m.x + 100) active = false;
-            if(!active) { document.getElementById('msg').innerText = "أمسك بك الوحش! 🙀"; overlay.style.display = 'flex'; }
-            if(dist <= 0) { cur = (cur + 1) % 20; active = false; document.getElementById('msg').innerText = "أحسنت! للمرحلة التالية"; overlay.style.display = 'flex'; }
+            
+            if(!active) {
+                document.getElementById('msg').innerText = "أمسك بك الوحش! 🙀";
+                overlay.style.display = 'flex';
+            }
+
+            if(dist <= 0) {
+                curLevel = (curLevel + 1) % 20; 
+                active = false;
+                document.getElementById('msg').innerText = "أحسنت! للمرحلة التالية 🏆";
+                overlay.style.display = 'flex';
+            }
 
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
             document.getElementById('fCount').innerText = totalFish;
             document.getElementById('dCount').innerText = Math.max(0, Math.floor(dist));
         }
 
+        // رسم الحواجز بالألوان المتسلسلة
         obs.forEach(o => {
-            ctx.fillStyle = barrierColors[cur % 10];
-            ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
+            ctx.fillStyle = barrierColors[curLevel % 10];
+            ctx.fillRect(o.x, 0, 70, o.y);
+            ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
         });
 
         items.forEach(f => drawFish(f.x, f.y));
@@ -128,7 +135,7 @@
         requestAnimationFrame(loop);
     }
 
-    const trigger = () => { if(active) started = true; p.v = -9.2; };
+    const trigger = () => { if(active) started = true; p.v = -9.5; };
     window.addEventListener('mousedown', trigger);
     window.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); }, {passive: false});
     loop();
