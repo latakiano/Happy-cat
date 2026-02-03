@@ -3,28 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Escape - Professional Edition</title>
+    <title>Happy Cat Escape 3D</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial', sans-serif; }
         #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
-        .bar { width: 80%; height: 14px; background: #222; margin: 5px auto; border-radius: 10px; border: 2px solid #444; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: #00ffcc; transition: width 0.2s; }
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; text-align: center; }
-        button { padding: 20px 50px; font-size: 24px; cursor: pointer; background: #e67e22; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(230,126,34,0.5); }
+        .bar-container { width: 80%; height: 16px; background: rgba(255,255,255,0.1); margin: 5px auto; border-radius: 20px; border: 2px solid #555; overflow: hidden; }
+        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00ffcc, #ff00ff); transition: width 0.2s; }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; text-align: center; }
+        button { padding: 15px 45px; font-size: 26px; cursor: pointer; background: #ff00ff; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(255,0,255,0.4); transition: 0.3s; }
+        button:active { transform: scale(0.95); }
+        .happy-text { position: absolute; color: #ff00ff; font-weight: bold; pointer-events: none; animation: flyUp 1s forwards; }
+        @keyframes flyUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-100px); } }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlName" style="font-size: 26px; font-weight: bold; color: #00ffcc;">المرحلة 1</div>
-    <div class="bar"><div id="fill"></div></div>
-    <div style="color:#f1c40f; font-weight:bold;">🐠: <span id="fCount">0</span> | 🐺 المسافة: <span id="dCount">1000</span>m</div>
+    <div id="lvlName" style="font-size: 28px; font-weight: 900; text-shadow: 0 0 10px #ff00ff;">المرحلة 1</div>
+    <div class="bar-container"><div id="fill"></div></div>
+    <div style="font-size: 20px;">✨ السعادة: <span id="fCount">0</span> | 🐺 المسافة: <span id="dCount">1000</span>m</div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg">مغامرة الكهف الاحترافية 🐾</h1>
-    <p>ساعد القطة الحقيقية على الهروب من الذئب!</p>
-    <button onclick="initGame()">انطلق الآن 🚀</button>
+    <h1 id="msg" style="font-size: 45px;">Happy Happy Happy! 🐾</h1>
+    <p style="font-size: 22px;">ساعد القطة السعيدة للهروب من الذئب الشرير!</p>
+    <button onclick="initGame()">ابدأ اللعب الآن 🚀</button>
 </div>
 
 <canvas id="c"></canvas>
@@ -34,110 +37,119 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
 
-    // صور احترافية كاملة (تعمل 100% وإذا تعطلت سأصلحها لك فوراً)
-    const catImg = new Image(); 
-    catImg.src = 'https://i.ibb.co/3pL60rS/cat-run.png'; // قطة تركض بجسم كامل
-    const wolfImg = new Image(); 
-    wolfImg.src = 'https://i.ibb.co/vH6ZzR6/wolf-run.png'; // ذئب كامل يطارد
-    const caveBg = new Image();
-    caveBg.src = 'https://i.ibb.co/7RzX83X/cave-bg.png'; // خلفية كهف جميلة
+    // صور حقيقية عالية الجودة
+    const catImg = new Image(); catImg.src = 'https://i.ibb.co/3pL60rS/cat-run.png'; 
+    const wolfImg = new Image(); wolfImg.src = 'https://i.ibb.co/vH6ZzR6/wolf-run.png';
 
-    let active = false, started = false, level = 0, fish = 0, dist = 1000;
-    let p = { x: 300, y: 0, v: 0 }, m = { x: 50, y: 0 }, obs = [], items = [], house = null;
+    let active = false, started = false, level = 0, fish = 0, dist = 1000, frame = 0;
+    let p = { x: 0, y: 0, v: 0, w: 110, h: 110 }, m = { x: 0, y: 0 }, obs = [], items = [], house = null;
 
-    const colors = ["#00ffcc", "#3498db", "#2ecc71", "#e74c3c", "#9b59b6", "#f1c40f", "#e67e22", "#1abc9c", "#34495e", "#c0392b"];
+    const colors = ["#ff00ff", "#00ffcc", "#ffff00", "#0099ff", "#ff9900", "#ff0000", "#99ff00", "#00ffff", "#ffffff", "#ff0066"];
 
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    function resize() { 
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
+        p.x = canvas.width * 0.25; 
+        if(!started) p.y = canvas.height / 2;
+    }
     window.addEventListener('resize', resize); resize();
 
     window.initGame = function() {
         overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = 50;
-        obs = []; items = []; house = null;
-        active = true; started = false;
+        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -150;
+        obs = []; items = []; house = null; active = true; started = false;
         document.getElementById('lvlName').innerText = "المرحلة " + (level + 1);
+        document.getElementById('lvlName').style.color = colors[level % 10];
     };
 
+    function spawnHappyEffect(x, y) {
+        const div = document.createElement('div');
+        div.className = 'happy-text';
+        div.innerText = "HAPPY!";
+        div.style.left = x + 'px';
+        div.style.top = y + 'px';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1000);
+    }
+
     function loop() {
-        // رسم الكهف الملون
-        ctx.fillStyle = "#0a0a0a";
+        // رسم الكهف الملون والمتوهج
+        let bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        bgGrad.addColorStop(0, "#050005");
+        bgGrad.addColorStop(0.5, "#1a001a"); // عمق أرجواني
+        bgGrad.addColorStop(1, "#050005");
+        ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // رسم "توهج" الكهف
-        let grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 0, canvas.width/2, canvas.height/2, canvas.width);
-        grad.addColorStop(0, "rgba(26, 0, 51, 0.3)");
-        grad.addColorStop(1, "black");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0,0, canvas.width, canvas.height);
+
+        frame++;
 
         if (active && started) {
             p.v += 0.52; p.y += p.v; 
-            dist -= 0.8;
+            dist -= (0.8 + level * 0.05);
 
-            // منطق المطاردة: الذئب (m) يلحق بالقطة (p) من جهة اليسار
-            m.y += (p.y - m.y) * 0.06;
-            m.x = Math.max(20, m.x + (0.4 + level * 0.1)); 
-            if (m.x > p.x - 100) m.x = p.x - 100; // الذئب لا يتجاوز القطة أبداً إلا عند الخسارة
+            m.y += (p.y - m.y) * 0.07;
+            m.x = Math.min(p.x - 120, m.x + (0.5 + level * 0.15));
 
-            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350)) {
+            if (p.x - m.x < 180 && frame % 15 === 0 && navigator.vibrate) navigator.vibrate(30);
+
+            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 380)) {
                 let h = Math.random() * (canvas.height - 350) + 100;
-                obs.push({ x: canvas.width, y: h, g: 300 - (level * 5) });
-                items.push({ x: canvas.width + 120, y: h + 150 });
+                obs.push({ x: canvas.width, y: h, g: 320 - (level * 6) });
+                items.push({ x: canvas.width + 150, y: h + 160 });
             }
 
-            if (dist <= 0 && !house) house = { x: canvas.width, y: p.y - 50 };
+            if (dist <= 0 && !house) house = { x: canvas.width, y: p.y - 60 };
 
             obs.forEach((o, i) => {
-                o.x -= (7 + level * 0.3);
-                if(p.x+80 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+70 > o.y+o.g)) active = false;
+                o.x -= (7 + level * 0.4);
+                ctx.fillStyle = colors[level % 10];
+                ctx.shadowBlur = 15; ctx.shadowColor = colors[level % 10];
+                ctx.fillRect(o.x, 0, 75, o.y); ctx.fillRect(o.x, o.y+o.g, 75, canvas.height);
+                ctx.shadowBlur = 0;
+
+                if(p.x+80 > o.x && p.x < o.x+75 && (p.y < o.y || p.y+70 > o.y+o.g)) active = false;
                 if(o.x < -100) obs.splice(i, 1);
             });
 
             if(house) {
                 house.x -= (7 + level * 0.4);
+                ctx.font = "80px Arial"; ctx.fillText("🏡", house.x, house.y + 70);
                 if(Math.hypot(p.x-house.x, p.y-house.y) < 100) {
                     level = (level + 1) % 20; active = false;
-                    document.getElementById('msg').innerText = "دخلت الكهف الآمن! 🏡";
+                    document.getElementById('msg').innerText = "HAPPY HAPPY HAPPY! ✨";
                     overlay.style.display = 'flex';
                 }
             }
 
-            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) active = false;
-            
+            items.forEach((f, i) => {
+                f.x -= (7 + level * 0.4);
+                ctx.font = "45px Arial"; ctx.fillText("🐠", f.x, f.y);
+                if(Math.hypot(p.x-f.x, p.y-f.y) < 70) { 
+                    fish++; items.splice(i,1); 
+                    spawnHappyEffect(p.x, p.y);
+                    if(navigator.vibrate) navigator.vibrate(20);
+                }
+            });
+
+            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 100) active = false;
             if(!active && dist > 0) { 
-                document.getElementById('msg').innerText = "أمسك بك الذئب! 🐺"; 
-                if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
+                document.getElementById('msg').innerText = "الذئب حزين الآن.. حاول ثانية! 🐺"; 
                 overlay.style.display = 'flex'; 
             }
 
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
             document.getElementById('dCount').innerText = Math.max(0, Math.floor(dist));
+            document.getElementById('fCount').innerText = fish;
         }
 
-        // رسم الحواجز بتصميم "صخور الكهف"
-        obs.forEach(o => {
-            ctx.fillStyle = colors[level % 10];
-            ctx.shadowBlur = 15; ctx.shadowColor = colors[level % 10];
-            ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
-            ctx.shadowBlur = 0;
-        });
-
-        if(house) { ctx.font = "70px Arial"; ctx.fillText("🏡", house.x, house.y + 60); }
-        
-        items.forEach((f, i) => {
-            f.x -= (7 + level * 0.3);
-            ctx.font = "40px Arial"; ctx.fillText("🐠", f.x, f.y);
-            if(Math.hypot(p.x-f.x, p.y-f.y) < 60) { fish+=10; items.splice(i,1); }
-        });
-
-        // رسم الذئب والقطة بالاتجاه الصحيح
-        ctx.drawImage(wolfImg, m.x, m.y, 160, 100); // الذئب في الخلف (يسار)
-        ctx.drawImage(catImg, p.x, p.y, 110, 110);   // القطة في الأمام (يمين)
+        // رسم الشخصيات
+        ctx.drawImage(wolfImg, m.x, m.y, 160, 100);
+        ctx.drawImage(catImg, p.x, p.y, p.w, p.h);
 
         requestAnimationFrame(loop);
     }
 
-    const jump = () => { if(active) { started = true; p.v = -10; } };
+    const jump = () => { if(active) { started = true; p.v = -10.5; } };
     window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'BUTTON') { e.preventDefault(); jump(); } }, {passive: false});
     window.addEventListener('mousedown', jump);
     window.addEventListener('keydown', (e) => { if(e.code === 'Space') jump(); });
