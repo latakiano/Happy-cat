@@ -3,77 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>النسخة الأسطورية - 20 مرحلة</title>
+    <title>Himalayan Cat 20 Stages</title>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
-        .bar { width: 70%; height: 12px; background: #333; margin: 10px auto; border-radius: 5px; border: 1px solid #fff; }
-        #fill { width: 0%; height: 100%; background: #0f0; }
-        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; z-index: 100; }
-        button { padding: 15px 40px; font-size: 22px; cursor: pointer; border-radius: 30px; background: #e74c3c; color: white; border: none; font-weight: bold; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; z-index: 10; pointer-events: none; }
+        .bar { width: 70%; height: 12px; background: #333; margin: 10px auto; border-radius: 10px; border: 1px solid #fff; overflow: hidden; }
+        #fill { width: 0%; height: 100%; background: #0f0; transition: 0.3s; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 100; text-align: center; }
+        button { padding: 15px 45px; font-size: 24px; cursor: pointer; border-radius: 30px; background: #27ae60; color: #fff; border: none; font-weight: bold; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlText" style="font-size: 24px;">المرحلة 1</div>
+    <div id="lvlName" style="font-size: 22px; color: #f1c40f;">المرحلة 1: غابة الذئاب</div>
     <div class="bar"><div id="fill"></div></div>
     <div style="font-size: 18px;">🐟 <span id="score">0</span> | 🏁 <span id="dist">1000</span>m</div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg">مغامرة الـ 20 مرحلة 🐾</h1>
-    <button onclick="startStage()">إبدأ الهروب 🚀</button>
+    <h1 id="msg">مغامرة القطة رهف 🐾</h1>
+    <p>اضغط للقفز والهروب من الوحوش!</p>
+    <button onclick="reset()">إبدأ الهروب 🚀</button>
 </div>
 
-<canvas id="game"></canvas>
+<canvas id="c"></canvas>
 
 <script>
-    const canvas = document.getElementById('game');
-    const ctx = canvas.getContext('2d');
-    
-    // تعريف 20 مرحلة كاملة (اسم، وحش، لون، سرعة)
+    const cvs = document.getElementById('c');
+    const ctx = cvs.getContext('2d');
+
+    // 20 مرحلة كاملة (الوحوش، الألوان، السرعة)
     const stages = [
-        { n: "غابة الذئاب", m: "🐺", col: "#f1c40f", s: 6 },
-        { n: "مقبرة الأشباح", m: "👻", col: "#9b59b6", s: 7 },
-        { n: "جبال النسور", m: "🦅", col: "#3498db", s: 8 },
-        { n: "وادي الأفاعي", m: "🐍", col: "#e67e22", s: 9 },
-        { n: "نهر التماسيح", m: "🐊", col: "#1abc9c", s: 10 },
-        { n: "عرين الأسد", m: "🦁", col: "#e74c3c", s: 11 },
-        { n: "كهف التنين", m: "🐉", col: "#ff0000", s: 12 },
-        { n: "مملكة الجليد", m: "🐻", col: "#00d4ff", s: 13 },
-        { n: "الفضاء", m: "👽", col: "#00ffcc", s: 14 },
-        { n: "برج الخفاش", m: "🦇", col: "#666", s: 15 },
-        { n: "أرض النمور", m: "🐯", col: "#ff9900", s: 16 },
-        { n: "جزيرة الغوريلا", m: "🦍", col: "#2ecc71", s: 17 },
-        { n: "قصر الهياكل", m: "💀", col: "#ecf0f1", s: 18 },
-        { n: "أعماق البحر", m: "🦈", col: "#2980b9", s: 19 },
-        { n: "عش العناكب", m: "🕷️", col: "#c0392b", s: 20 },
-        { n: "المستنقع", m: "🧟", col: "#d4ac0d", s: 21 },
-        { n: "الأهرامات", m: "⚰️", col: "#f39c12", s: 22 },
-        { n: "عالم السحر", m: "🧙", col: "#8e44ad", s: 23 },
-        { n: "الروبوتات", m: "🤖", col: "#bdc3c7", s: 24 },
-        { n: "الزعيم الأخير", m: "👹", col: "#ffffff", s: 26 }
+        {n:"غابة الذئاب", m:"🐺", c:"#f1c40f", s:6}, {n:"مقبرة الأشباح", m:"👻", c:"#9b59b6", s:7},
+        {n:"جبال النسور", m:"🦅", c:"#3498db", s:8}, {n:"وادي الأفاعي", m:"🐍", c:"#e67e22", s:9},
+        {n:"نهر التماسيح", m:"🐊", c:"#1abc9c", s:10}, {n:"عرين الأسد", m:"🦁", c:"#e74c3c", s:11},
+        {n:"كهف التنين", m:"🐉", c:"#ff0000", s:12}, {n:"مملكة الجليد", m:"🐻", c:"#00d4ff", s:13},
+        {n:"الفضاء العجيب", m:"👽", c:"#00ffcc", s:14}, {n:"برج الخفاش", m:"🦇", c:"#666", s:15},
+        {n:"أرض النمور", m:"🐯", c:"#ff9900", s:16}, {n:"جزيرة الغوريلا", m:"🦍", c:"#2ecc71", s:17},
+        {n:"قصر الهياكل", m:"💀", c:"#ecf0f1", s:18}, {n:"أعماق البحار", m:"🦈", c:"#2980b9", s:19},
+        {n:"عش العناكب", m:"🕷️", c:"#c0392b", s:20}, {n:"مستنقع الوحل", m:"🧟", c:"#d4ac0d", s:21},
+        {n:"الأهرامات", m:"🐫", c:"#f39c12", s:22}, {n:"عالم السحر", m:"🧙", c:"#8e44ad", s:23},
+        {n:"مصنع الروبوتات", m:"🤖", c:"#bdc3c7", s:24}, {n:"المعركة النهائية", m:"👹", c:"#ffffff", s:26}
     ];
 
     let cur = 0, score = 0, dist = 1000, active = false, started = false;
-    let p = { x: 100, y: 0, v: 0, s: 50 };
-    let m = { x: -100, y: 0, s: 70 };
-    let obs = [], fish = [];
+    let p = {x: 100, y: 0, v: 0}, m = {x: -100, y: 0}, obs = [], fish = [];
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+    function resize() { cvs.width = window.innerWidth; cvs.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-    function startStage() {
+    function reset() {
         document.getElementById('overlay').style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -100; m.y = canvas.height/2;
-        obs = []; fish = [];
-        document.getElementById('lvlText').innerText = `المرحلة ${cur+1}: ${stages[cur].n}`;
-        active = true; started = false;
+        dist = 1000; p.y = cvs.height/2; p.v = 0; m.x = -100;
+        obs = []; fish = []; active = true; started = false;
+        document.getElementById('lvlName').innerText = `المرحلة ${cur+1}: ${stages[cur].n}`;
     }
 
     function die() {
@@ -84,31 +68,27 @@
 
     function update() {
         if (!active || !started) return;
-        const s = stages[cur];
-        
+        let s = stages[cur];
         p.v += 0.5; p.y += p.v; // جاذبية
         dist -= s.s / 10;
-
-        // مطاردة الوحش
-        m.y += (p.y - m.y) * 0.06;
-        m.x = Math.min(p.x - 120, m.x + 0.4);
+        m.y += (p.y - m.y) * 0.06; m.x = Math.min(p.x - 120, m.x + 0.4);
 
         if (dist <= 0) {
             active = false; cur++;
-            if (cur >= 20) { document.getElementById('msg').innerText = "🏆 ختمت اللعبة! 🏆"; cur = 0; }
-            else { document.getElementById('msg').innerText = "🏠 وصلت بأمان!"; }
+            if (cur >= 20) { cur = 0; document.getElementById('msg').innerText = "🏆 أنت بطل خارق! 🏆"; }
+            else { document.getElementById('msg').innerText = "🏠 وصلت للكوخ بأمان!"; }
             document.getElementById('overlay').style.display = 'flex';
         }
 
-        if (frame % 90 === 0) {
-            let gap = Math.random() * (canvas.height - 300) + 100;
-            obs.push({ x: canvas.width, y: gap, g: 280 });
-            fish.push({ x: canvas.width + 50, y: gap + 140 });
+        if (Math.random() < 0.02) {
+            let g = Math.random() * (cvs.height - 300) + 100;
+            obs.push({x: cvs.width, y: g, w: 50, h: 280});
+            fish.push({x: cvs.width + 50, y: g + 140});
         }
 
         obs.forEach((o, i) => {
             o.x -= s.s;
-            if (p.x+30 > o.x && p.x < o.x+50 && (p.y < o.y || p.y+40 > o.y+o.g)) die();
+            if (p.x+30 > o.x && p.x < o.x+o.w && (p.y < o.y || p.y+40 > o.y+o.h)) die();
             if (o.x < -100) obs.splice(i, 1);
         });
 
@@ -117,47 +97,34 @@
             if (Math.hypot(p.x-f.x, p.y-f.y) < 40) { score += 100; fish.splice(i, 1); }
         });
 
-        if (p.y > canvas.height || p.y < -50 || p.x < m.x + 60) die();
-
+        if (p.y > cvs.height || p.y < -50 || p.x < m.x + 60) die();
         document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
         document.getElementById('dist').innerText = Math.max(0, Math.floor(dist));
         document.getElementById('score').innerText = score;
     }
 
-    let frame = 0;
     function draw() {
-        const s = stages[cur];
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // رسم العوائق
-        ctx.fillStyle = s.col;
-        obs.forEach(o => {
-            ctx.fillRect(o.x, 0, 50, o.y);
-            ctx.fillRect(o.x, o.y + o.g, 50, canvas.height);
-        });
-
-        // رسم السمك
+        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cvs.width, cvs.height);
+        let s = stages[cur];
+        
+        ctx.fillStyle = s.c;
+        obs.forEach(o => { ctx.fillRect(o.x, 0, o.w, o.y); ctx.fillRect(o.x, o.y+o.h, o.w, cvs.height); });
+        
         ctx.font = "30px Arial";
         fish.forEach(f => ctx.fillText("🐠", f.x, f.y));
+        
+        ctx.font = "60px Arial"; // الوحش
+        ctx.save(); ctx.translate(m.x+60, m.y+50); ctx.scale(-1, 1); ctx.fillText(s.m, 0, 0); ctx.restore();
+        
+        ctx.font = "50px Arial"; // القطة
+        ctx.fillText("🐱", p.x, p.y+40);
 
-        // رسم الوحش والمطاردة
-        ctx.font = "60px Arial";
-        ctx.fillText(s.m, m.x, m.y + 50);
-
-        // رسم القطة
-        ctx.font = "50px Arial";
-        ctx.fillText("🐱", p.x, p.y + 40);
-
-        frame++;
-        update();
-        requestAnimationFrame(draw);
+        update(); requestAnimationFrame(draw);
     }
 
-    const jump = () => { if(active) { started = true; p.v = -9; } };
+    function jump() { if(active) { started = true; p.v = -9; } }
     window.addEventListener('mousedown', jump);
     window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, {passive: false});
-
     draw();
 </script>
 </body>
