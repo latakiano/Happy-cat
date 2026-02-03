@@ -3,54 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat Gold</title>
+    <title>Himalayan Cat: The Island Dream</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; touch-action: none; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 100; pointer-events: none; }
-        .progress-bar { width: 80%; height: 12px; background: #333; margin: 5px auto; border-radius: 10px; border: 1px solid #fff; }
-        #fill { width: 0%; height: 100%; background: #00ffcc; border-radius: 10px; }
-        #overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; color: white; z-index: 1000; 
-        }
-        .btn { 
-            padding: 15px 40px; font-size: 24px; cursor: pointer; border-radius: 50px; 
-            background: #e67e22; color: white; border: none; font-weight: bold;
-            box-shadow: 0 5px 0 #d35400; margin-top: 20px;
-        }
-        .score { color:#f1c40f; font-size: 20px; font-weight: bold; }
+        :root { --main-color: #f1c40f; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Cairo', sans-serif; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        canvas { display: block; background: linear-gradient(#001d3d, #000); }
+        
+        /* واجهة المستخدم */
+        #hud { position: absolute; top: 20px; width: 100%; display: flex; justify-content: space-around; color: #fff; z-index: 10; pointer-events: none; }
+        .stat-box { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 15px; border: 2px solid var(--main-color); box-shadow: 0 0 15px var(--main-color); }
+        
+        /* القائمة الرئيسية */
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #fff; text-align: center; }
+        .logo { font-size: 3em; color: var(--main-color); text-shadow: 0 0 20px #fff; margin-bottom: 20px; }
+        .btn-start { padding: 20px 60px; font-size: 1.5em; background: #27ae60; color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 8px 0 #1e8449; transition: 0.1s; }
+        .btn-start:active { transform: translateY(4px); box-shadow: none; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div id="lvlName" style="font-size: 22px; margin-bottom: 5px;">المرحلة 1</div>
-    <div class="progress-bar"><div id="fill"></div></div>
-    <div class="score">🐟 السمك: <span id="fishCount">0</span> | 🏁 المسافة: <span id="distance">1000</span></div>
-</div>
+<div id="game-container">
+    <div id="hud">
+        <div class="stat-box">🐟 السمك: <span id="fish-val">0</span></div>
+        <div id="lvl-tag" class="stat-box" style="border-color: #3498db;">المرحلة: 1</div>
+        <div class="stat-box">🚩 المسافة: <span id="dist-val">1000</span>m</div>
+    </div>
 
-<div id="overlay">
-    <h1 id="msg">مغامرة القطة هملايا 🐾</h1>
-    <p>اضغط للقفز والهروب من الوحش!</p>
-    <button class="btn" onclick="startGame()">إبدأ اللعب الآن 🚀</button>
-</div>
+    <div id="overlay">
+        <div class="logo">مغامرة الجزيرة 🏝️</div>
+        <p style="font-size: 1.2em; max-width: 80%;">ساعد القطة "هملايا" لجمع الثروة وبناء جزيرة الأمل!</p>
+        <button class="btn-start" onclick="initGame()">إبدأ المغامرة 🚀</button>
+    </div>
 
-<canvas id="gameCanvas"></canvas>
+    <canvas id="canvas"></canvas>
+</div>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
+    const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const overlay = document.getElementById('overlay');
-    const fill = document.getElementById('fill');
     
-    let gameActive = false, started = false;
-    let fish = 0, level = 0, dist = 1000;
-    let cat = { x: 80, y: 0, v: 0, w: 70, h: 50 };
-    let monster = { x: -200, y: 0 };
-    let pipes = [], food = [];
+    // روابط صور عالية الجودة (تأكد من استخدام PNG شفافة)
+    const assets = {
+        cat: 'https://i.ibb.co/LzqM8Pz/himalayan-cat.png', 
+        fish: 'https://cdn-icons-png.flaticon.com/128/603/603310.png',
+        monster: 'https://i.ibb.co/D7V6BfH/wolf-real.png'
+    };
 
-    const barrierColors = ["#f1c40f", "#3498db", "#2ecc71", "#111111", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
+    const imgNodes = {};
+    Object.keys(assets).forEach(key => {
+        imgNodes[key] = new Image();
+        imgNodes[key].src = assets[key];
+    });
+
+    let state = {
+        active: false,
+        fish: 0,
+        level: 0,
+        dist: 1000,
+        colors: ["#f1c40f", "#3498db", "#2ecc71", "#111111", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"]
+    };
+
+    let player = { x: 100, y: 0, v: 0, w: 80, h: 60 };
+    let obstacles = [];
+    let food = [];
+    let monster = { x: -250, y: 0 };
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -59,117 +76,88 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function drawCat(x, y) {
-        ctx.save();
-        // الجسم (أبيض كريمي للهملايا)
-        ctx.fillStyle = "#FDF5E6";
-        ctx.beginPath(); ctx.ellipse(x + 30, y + 30, 30, 20, 0, 0, Math.PI * 2); ctx.fill();
-        // الوجه والأذنين (بني غامق - سيال بوينت)
-        ctx.fillStyle = "#3E2723";
-        ctx.beginPath(); ctx.arc(x + 50, y + 20, 15, 0, Math.PI * 2); ctx.fill(); // الرأس
-        ctx.beginPath(); ctx.moveTo(x+40, y+10); ctx.lineTo(x+45, y); ctx.lineTo(x+50, y+10); ctx.fill(); // أذن
-        // العين الزرقاء المميزة
-        ctx.fillStyle = "#00BFFF";
-        ctx.beginPath(); ctx.arc(x + 55, y + 18, 3, 0, Math.PI * 2); ctx.fill();
-        // الذيل الكثيف
-        ctx.strokeStyle = "#3E2723"; ctx.lineWidth = 10; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(x+10, y+35); ctx.quadraticCurveTo(x-10, y+10, x+5, y+5); ctx.stroke();
-        ctx.restore();
+    function initGame() {
+        document.getElementById('overlay').style.display = 'none';
+        state.active = true;
+        state.dist = 1000;
+        player.y = canvas.height / 2;
+        player.v = 0;
+        obstacles = [];
+        food = [];
+        monster.x = -250;
     }
 
-    function drawMonster(x, y) {
-        ctx.fillStyle = "#1a1a1a";
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+140, y+60); ctx.lineTo(x, y+120); ctx.closePath(); ctx.fill();
-        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(x+90, y+45, 6, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x+90, y+75, 6, 0, Math.PI*2); ctx.fill();
-    }
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (state.active) {
+            // تحديث المنطق
+            player.v += 0.5;
+            player.y += player.v;
+            state.dist -= 0.5;
+            monster.y += (player.y - monster.y) * 0.05;
+            monster.x = Math.min(player.x - 150, monster.x + 0.4);
 
-    function drawFish(x, y) {
-        ctx.fillStyle = "#FF8C00";
-        ctx.beginPath(); ctx.ellipse(x, y, 18, 10, 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(x-12, y); ctx.lineTo(x-25, y-12); ctx.lineTo(x-25, y+12); ctx.closePath(); ctx.fill();
-    }
-
-    function startGame() {
-        overlay.style.display = 'none';
-        cat.y = canvas.height / 2;
-        cat.v = 0;
-        monster.x = -200;
-        pipes = []; food = [];
-        dist = 1000;
-        gameActive = true;
-        started = false;
-        document.getElementById('lvlName').innerText = `المرحلة ${level + 1}`;
-    }
-
-    function gameOver(win = false) {
-        gameActive = false;
-        document.getElementById('msg').innerText = win ? "أحسنت! للمرحلة التالية 🏆" : "أمسك بك الوحش! 🙀";
-        if (win) level = (level + 1) % 20;
-        overlay.style.display = 'flex';
-    }
-
-    function update() {
-        if (!gameActive) return;
-        if (started) {
-            cat.v += 0.55;
-            cat.y += cat.v;
-            dist -= 0.8;
-            monster.y += (cat.y - monster.y) * 0.06;
-            monster.x = Math.min(cat.x - 140, monster.x + 0.5);
-
-            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 350) {
-                let gapPos = Math.random() * (canvas.height - 350) + 100;
-                pipes.push({ x: canvas.width, y: gapPos, g: 300 });
-                food.push({ x: canvas.width + 100, y: gapPos + 150 });
+            // توليد العوائق (الحواجز)
+            if (obstacles.length === 0 || obstacles[obstacles.length-1].x < canvas.width - 400) {
+                let gap = 300;
+                let pos = Math.random() * (canvas.height - gap - 100) + 50;
+                obstacles.push({ x: canvas.width, y: pos, g: gap });
+                food.push({ x: canvas.width + 150, y: pos + gap/2 });
             }
 
-            pipes.forEach((p, i) => {
-                p.x -= 6;
-                if (cat.x + 50 > p.x && cat.x < p.x + 70 && (cat.y < p.y || cat.y + 40 > p.y + p.g)) gameOver();
-                if (p.x < -100) pipes.splice(i, 1);
+            // رسم وتحريك الحواجز
+            obstacles.forEach((ob, i) => {
+                ob.x -= 7;
+                ctx.fillStyle = state.colors[state.level % 10];
+                ctx.fillRect(ob.x, 0, 80, ob.y);
+                ctx.fillRect(ob.x, ob.y + ob.g, 80, canvas.height);
+                
+                // تصادم الحواجز
+                if (player.x + 60 > ob.x && player.x < ob.x + 80 && (player.y < ob.y || player.y + 40 > ob.y + ob.g)) state.active = false;
+                if (ob.x < -100) obstacles.splice(i, 1);
             });
 
+            // رسم وتحريك السمك
             food.forEach((f, i) => {
-                f.x -= 6;
-                if (Math.hypot(cat.x + 30 - f.x, cat.y + 30 - f.y) < 50) {
-                    fish += 100;
+                f.x -= 7;
+                ctx.drawImage(imgNodes.fish, f.x, f.y, 50, 40);
+                if (Math.hypot(player.x - f.x, player.y - f.y) < 50) {
+                    state.fish += 100;
                     food.splice(i, 1);
-                    document.getElementById('fishCount').innerText = fish;
+                    document.getElementById('fish-val').innerText = state.fish;
                 }
             });
 
-            if (cat.y > canvas.height || cat.y < -100 || cat.x < monster.x + 110) gameOver();
-            if (dist <= 0) gameOver(true);
+            // تحديث الواجهة
+            document.getElementById('dist-val').innerText = Math.max(0, Math.floor(state.dist));
+            if (state.dist <= 0) {
+                state.level++;
+                state.active = false;
+                document.getElementById('overlay').style.display = 'flex';
+                document.querySelector('.logo').innerText = "تمت المرحلة! 🏝️";
+            }
 
-            fill.style.width = (1 - dist / 1000) * 100 + "%";
-            document.getElementById('distance').innerText = Math.max(0, Math.floor(dist));
+            if (player.y > canvas.height || player.y < -100 || player.x < monster.x + 100) state.active = false;
         }
+
+        // رسم الوحش والقطة
+        ctx.drawImage(imgNodes.monster, monster.x, monster.y, 180, 150);
+        ctx.drawImage(imgNodes.cat, player.x, player.y, player.w, player.h);
+
+        if (!state.active && state.dist > 0) {
+            document.getElementById('overlay').style.display = 'flex';
+            document.querySelector('.logo').innerText = "حاول مرة أخرى! 🙀";
+        }
+
+        requestAnimationFrame(draw);
     }
 
-    function render() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // رسم الحواجز
-        pipes.forEach(p => {
-            ctx.fillStyle = barrierColors[level % 10];
-            ctx.fillRect(p.x, 0, 70, p.y);
-            ctx.fillRect(p.x, p.y + p.g, 70, canvas.height);
-        });
+    const jump = () => { if(state.active) player.v = -10; };
+    window.addEventListener('mousedown', jump);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, {passive: false});
 
-        food.forEach(f => drawFish(f.x, f.y));
-        drawMonster(monster.x, monster.y);
-        drawCat(cat.x, cat.y);
-
-        update();
-        requestAnimationFrame(render);
-    }
-
-    const input = () => { if (gameActive) { started = true; cat.v = -9.5; } };
-    window.addEventListener('mousedown', input);
-    window.addEventListener('touchstart', (e) => { e.preventDefault(); input(); }, { passive: false });
-
-    render();
+    draw();
 </script>
 </body>
 </html>
