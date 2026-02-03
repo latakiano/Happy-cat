@@ -1,160 +1,88 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Happy Cat Escape 3D</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #000; touch-action: none; font-family: 'Arial', sans-serif; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
-        .bar-container { width: 80%; height: 16px; background: rgba(255,255,255,0.1); margin: 5px auto; border-radius: 20px; border: 2px solid #555; overflow: hidden; }
-        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00ffcc, #ff00ff); transition: width 0.2s; }
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; z-index: 1000; text-align: center; }
-        button { padding: 15px 45px; font-size: 26px; cursor: pointer; background: #ff00ff; color: white; border: none; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(255,0,255,0.4); transition: 0.3s; }
-        button:active { transform: scale(0.95); }
-        .happy-text { position: absolute; color: #ff00ff; font-weight: bold; pointer-events: none; animation: flyUp 1s forwards; }
-        @keyframes flyUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-100px); } }
-    </style>
-</head>
-<body>
+import pygame
+import random
 
-<div id="ui">
-    <div id="lvlName" style="font-size: 28px; font-weight: 900; text-shadow: 0 0 10px #ff00ff;">المرحلة 1</div>
-    <div class="bar-container"><div id="fill"></div></div>
-    <div style="font-size: 20px;">✨ السعادة: <span id="fCount">0</span> | 🐺 المسافة: <span id="dCount">1000</span>m</div>
-</div>
+# إعدادات المراحل (Stages 1-5: التأسيس)
+pygame.init()
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("لعبة القطة - الكود الذهبي 20 مرحلة")
 
-<div id="overlay">
-    <h1 id="msg" style="font-size: 45px;">Happy Happy Happy! 🐾</h1>
-    <p style="font-size: 22px;">ساعد القطة السعيدة للهروب من الذئب الشرير!</p>
-    <button onclick="initGame()">ابدأ اللعب الآن 🚀</button>
-</div>
+# الألوان (Stage 4: Feature Engineering)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+CAT_COLOR = (255, 165, 0) # برتقالي
 
-<canvas id="c"></canvas>
+# كلاس القطة (Stages 6-10: المنطق والتحليل)
+class Cat:
+    def __init__(self):
+        self.rect = pygame.Rect(400, 500, 50, 50)
+        self.speed = 7
 
-<script>
-    const canvas = document.getElementById('c');
-    const ctx = canvas.getContext('2d');
-    const overlay = document.getElementById('overlay');
+    def move(self, keys):
+        if keys[pygame.K_LEFT] and self.rect.left > 0:
+            self.rect.x -= self.speed
+        if keys[pygame.K_RIGHT] and self.rect.right < SCREEN_WIDTH:
+            self.rect.x += self.speed
 
-    // صور حقيقية عالية الجودة
-    const catImg = new Image(); catImg.src = 'https://i.ibb.co/3pL60rS/cat-run.png'; 
-    const wolfImg = new Image(); wolfImg.src = 'https://i.ibb.co/vH6ZzR6/wolf-run.png';
+# نظام النقاط والمراحل (Stages 11-15: الربط والواجهة)
+class GameSystem:
+    def __init__(self):
+        self.stage = 1
+        self.score = 0
+        self.font = pygame.font.SysFont("Arial", 24)
 
-    let active = false, started = false, level = 0, fish = 0, dist = 1000, frame = 0;
-    let p = { x: 0, y: 0, v: 0, w: 110, h: 110 }, m = { x: 0, y: 0 }, obs = [], items = [], house = null;
+    def update_stage(self):
+        # كل 10 نقاط ننتقل لمرحلة جديدة (حتى نصل لـ 20)
+        self.stage = (self.score // 10) + 1
+        if self.stage > 20: self.stage = 20
 
-    const colors = ["#ff00ff", "#00ffcc", "#ffff00", "#0099ff", "#ff9900", "#ff0000", "#99ff00", "#00ffff", "#ffffff", "#ff0066"];
+    def draw(self, surface):
+        text = self.font.render(f"Stage: {self.stage}/20  | Score: {self.score}", True, BLACK)
+        surface.blit(text, (10, 10))
 
-    function resize() { 
-        canvas.width = window.innerWidth; 
-        canvas.height = window.innerHeight; 
-        p.x = canvas.width * 0.25; 
-        if(!started) p.y = canvas.height / 2;
-    }
-    window.addEventListener('resize', resize); resize();
+# الدورة الرئيسية للعبة (Stages 16-20: الاختبار والتدشين)
+def start_game():
+    cat = Cat()
+    system = GameSystem()
+    food = pygame.Rect(random.randint(0, 750), 0, 30, 30)
+    clock = pygame.time.Clock()
+    running = True
 
-    window.initGame = function() {
-        overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -150;
-        obs = []; items = []; house = null; active = true; started = false;
-        document.getElementById('lvlName').innerText = "المرحلة " + (level + 1);
-        document.getElementById('lvlName').style.color = colors[level % 10];
-    };
+    while running:
+        screen.fill(WHITE)
+        keys = pygame.key.get_pressed()
 
-    function spawnHappyEffect(x, y) {
-        const div = document.createElement('div');
-        div.className = 'happy-text';
-        div.innerText = "HAPPY!";
-        div.style.left = x + 'px';
-        div.style.top = y + 'px';
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 1000);
-    }
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-    function loop() {
-        // رسم الكهف الملون والمتوهج
-        let bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        bgGrad.addColorStop(0, "#050005");
-        bgGrad.addColorStop(0.5, "#1a001a"); // عمق أرجواني
-        bgGrad.addColorStop(1, "#050005");
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        # تحريك القطة
+        cat.move(keys)
+        
+        # تحريك الطعام (يزداد الصعوبة مع تقدم المراحل)
+        food.y += 5 + system.stage # تزداد السرعة حسب المرحلة
+        if food.y > SCREEN_HEIGHT:
+            food.y = 0
+            food.x = random.randint(0, 750)
 
-        frame++;
+        # التحقق من الاصطدام (نقطة)
+        if cat.rect.colliderect(food):
+            system.score += 2
+            system.update_stage()
+            food.y = 0
+            food.x = random.randint(0, 750)
 
-        if (active && started) {
-            p.v += 0.52; p.y += p.v; 
-            dist -= (0.8 + level * 0.05);
+        # رسم العناصر
+        pygame.draw.rect(screen, CAT_COLOR, cat.rect) # القطة
+        pygame.draw.ellipse(screen, (200, 0, 0), food) # الطعام
+        system.draw(screen)
 
-            m.y += (p.y - m.y) * 0.07;
-            m.x = Math.min(p.x - 120, m.x + (0.5 + level * 0.15));
+        pygame.display.flip()
+        clock.tick(60)
 
-            if (p.x - m.x < 180 && frame % 15 === 0 && navigator.vibrate) navigator.vibrate(30);
+    pygame.quit()
 
-            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 380)) {
-                let h = Math.random() * (canvas.height - 350) + 100;
-                obs.push({ x: canvas.width, y: h, g: 320 - (level * 6) });
-                items.push({ x: canvas.width + 150, y: h + 160 });
-            }
-
-            if (dist <= 0 && !house) house = { x: canvas.width, y: p.y - 60 };
-
-            obs.forEach((o, i) => {
-                o.x -= (7 + level * 0.4);
-                ctx.fillStyle = colors[level % 10];
-                ctx.shadowBlur = 15; ctx.shadowColor = colors[level % 10];
-                ctx.fillRect(o.x, 0, 75, o.y); ctx.fillRect(o.x, o.y+o.g, 75, canvas.height);
-                ctx.shadowBlur = 0;
-
-                if(p.x+80 > o.x && p.x < o.x+75 && (p.y < o.y || p.y+70 > o.y+o.g)) active = false;
-                if(o.x < -100) obs.splice(i, 1);
-            });
-
-            if(house) {
-                house.x -= (7 + level * 0.4);
-                ctx.font = "80px Arial"; ctx.fillText("🏡", house.x, house.y + 70);
-                if(Math.hypot(p.x-house.x, p.y-house.y) < 100) {
-                    level = (level + 1) % 20; active = false;
-                    document.getElementById('msg').innerText = "HAPPY HAPPY HAPPY! ✨";
-                    overlay.style.display = 'flex';
-                }
-            }
-
-            items.forEach((f, i) => {
-                f.x -= (7 + level * 0.4);
-                ctx.font = "45px Arial"; ctx.fillText("🐠", f.x, f.y);
-                if(Math.hypot(p.x-f.x, p.y-f.y) < 70) { 
-                    fish++; items.splice(i,1); 
-                    spawnHappyEffect(p.x, p.y);
-                    if(navigator.vibrate) navigator.vibrate(20);
-                }
-            });
-
-            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 100) active = false;
-            if(!active && dist > 0) { 
-                document.getElementById('msg').innerText = "الذئب حزين الآن.. حاول ثانية! 🐺"; 
-                overlay.style.display = 'flex'; 
-            }
-
-            document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
-            document.getElementById('dCount').innerText = Math.max(0, Math.floor(dist));
-            document.getElementById('fCount').innerText = fish;
-        }
-
-        // رسم الشخصيات
-        ctx.drawImage(wolfImg, m.x, m.y, 160, 100);
-        ctx.drawImage(catImg, p.x, p.y, p.w, p.h);
-
-        requestAnimationFrame(loop);
-    }
-
-    const jump = () => { if(active) { started = true; p.v = -10.5; } };
-    window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'BUTTON') { e.preventDefault(); jump(); } }, {passive: false});
-    window.addEventListener('mousedown', jump);
-    window.addEventListener('keydown', (e) => { if(e.code === 'Space') jump(); });
-
-    loop();
-</script>
-</body>
-</html>
+# تشغيل المرحلة 20 (التدشين النهائي)
+if __name__ == "__main__":
+    start_game()
