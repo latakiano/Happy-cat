@@ -11,30 +11,30 @@
         #fill { width: 0%; height: 100%; background: #00ffcc; border-radius: 10px; transition: 0.1s; }
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; color: white; z-index: 1000; 
         }
         button { 
-            padding: 15px 40px; font-size: 22px; cursor: pointer; border-radius: 50px; 
+            padding: 15px 40px; font-size: 24px; cursor: pointer; border-radius: 50px; 
             background: #e67e22; color: white; border: none; font-weight: bold; margin: 10px;
-            box-shadow: 0 5px 0 #d35400;
+            box-shadow: 0 6px 0 #d35400; transition: 0.1s;
         }
         button:active { transform: translateY(4px); box-shadow: none; }
-        .stat { color:#f1c40f; font-size: 18px; margin: 5px; }
+        .stat { color:#f1c40f; font-size: 18px; margin: 5px; text-shadow: 1px 1px 2px #000; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlName" style="font-size: 22px; font-weight: bold;">المرحلة 1</div>
+    <div id="lvlName" style="font-size: 24px; font-weight: bold; color: #33ccff;">المرحلة 1</div>
     <div class="bar-container"><div id="fill"></div></div>
-    <div class="stat">🐟 السمك: <span id="totalFish">0</span> | 🏁 المسافة: <span id="dist">1000</span>m</div>
+    <div class="stat">🐟 رصيد السمك: <span id="totalFish">0</span> | 🏁 المسافة: <span id="dist">1000</span>m</div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg">مغامرة القطة هملايا 🐾</h1>
-    <p>لقد جمعت <span id="currentWallet">0</span> سمكة</p>
-    <button onclick="setupStage()">إبدأ اللعب وتحدى اصدقائك من سوف ينقذ القطة رهف 🚀</button>
+    <h1 id="msg" style="font-size: 2.5em; color: #f1c40f;">مغامرة القطة هملايا 🐾</h1>
+    <p style="font-size: 1.2em;">ساعد القطة الجميلة على الهرب وصيد السمك</p>
+    <button onclick="setupStage()">إبدأ المغامرة الآن 🚀</button>
 </div>
 
 <canvas id="c"></canvas>
@@ -44,67 +44,84 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
     let audioCtx, musicOsc;
-    let totalFish = 0, hasShield = false;
+    let totalFish = 0;
+    
+    // ألوان الحواجز حسب طلبك الدقيق
+    const barrierColors = ["#f1c40f", "#3498db", "#2ecc71", "#111111", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
 
-    // ألوان الحواجز حسب طلبك
-    const barrierColors = ["#f1c40f", "#3498db", "#2ecc71", "#000000", "#8b4513", "#800000", "#4b0082", "#2f4f4f", "#ff4500", "#556b2f"];
-
-    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-    window.addEventListener('resize', resize); resize();
+    function resize() { 
+        canvas.width = window.innerWidth; 
+        canvas.height = window.innerHeight; 
+    }
+    window.addEventListener('resize', resize); 
+    resize();
 
     // مراحل اللعبة (20 مرحلة)
     const stages = [];
     for(let i=0; i<20; i++) {
         stages.push({
             n: `المرحلة ${i+1}`,
-            bg: ["#1a1a2e", "#16213e", "#0f3460"][i%3],
+            bg: i % 2 === 0 ? "#0d0d0d" : "#1a1a2e",
             col: barrierColors[i % barrierColors.length],
-            s: 5 + (i * 0.4)
+            s: 5.5 + (i * 0.4)
         });
     }
 
     let cur = 0, dist = 1000, active = false, started = false, frame = 0;
-    let p = { x: 120, y: 0, v: 0 }, m = { x: -200, y: 0 }, obs = [], items = [];
+    let p = { x: 100, y: 0, v: 0 }, m = { x: -250, y: 0 }, obs = [], items = [];
 
-    // وظيفة رسم القطة الهملايا برمجياً لضمان ظهورها
-    function drawHimalayanCat(x, y) {
+    // رسم القطة هملايا الحقيقية (أبيض مع أطراف داكنة)
+    function drawCat(x, y) {
         ctx.save();
         ctx.translate(x, y);
-        // الجسم (أبيض كريمي)
-        ctx.fillStyle = "#F5F5DC";
-        ctx.beginPath(); ctx.ellipse(30, 30, 25, 18, 0, 0, Math.PI*2); ctx.fill();
+        // الجسم الكثيف (أبيض كريمي)
+        ctx.fillStyle = "#FDF5E6";
+        ctx.beginPath(); ctx.ellipse(35, 35, 28, 20, 0, 0, Math.PI*2); ctx.fill();
         // الرأس
-        ctx.beginPath(); ctx.arc(45, 20, 15, 0, Math.PI*2); ctx.fill();
-        // الوجه الداكن (سمة الهملايا)
-        ctx.fillStyle = "#4B3621";
-        ctx.beginPath(); ctx.arc(50, 20, 8, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(52, 22, 16, 0, Math.PI*2); ctx.fill();
+        // الوجه (قناع الهملايا البني)
+        ctx.fillStyle = "#3E2723";
+        ctx.beginPath(); ctx.arc(58, 22, 10, 0, Math.PI*2); ctx.fill();
+        // العيون الزرقاء الصافية
+        ctx.fillStyle = "#00BFFF";
+        ctx.beginPath(); ctx.arc(62, 20, 3, 0, Math.PI*2); ctx.fill();
         // الأذنين
-        ctx.beginPath(); ctx.moveTo(40, 10); ctx.lineTo(45, 0); ctx.lineTo(50, 10); ctx.fill();
-        // الذيل الكثيف
-        ctx.strokeStyle = "#4B3621"; ctx.lineWidth = 8; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.moveTo(10, 30); ctx.quadraticCurveTo(-10, 10, 5, 5); ctx.stroke();
+        ctx.fillStyle = "#3E2723";
+        ctx.beginPath(); ctx.moveTo(45, 12); ctx.lineTo(50, 0); ctx.lineTo(55, 12); ctx.fill();
+        // الذيل الطويل الكثيف (بني)
+        ctx.strokeStyle = "#3E2723"; ctx.lineWidth = 10; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(10, 35); ctx.quadraticCurveTo(-15, 10, 10, 5); ctx.stroke();
         ctx.restore();
     }
 
-    // رسم السمكة
+    // رسم السمكة (ظاهرة وواضحة جداً)
     function drawFish(x, y) {
-        ctx.fillStyle = "#ff9900";
-        ctx.beginPath(); ctx.ellipse(x, y, 15, 8, 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(x-10, y); ctx.lineTo(x-20, y-10); ctx.lineTo(x-20, y+10); ctx.fill();
-        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(x+8, y-2, 2, 0, Math.PI*2); ctx.fill();
+        ctx.save();
+        ctx.fillStyle = "#FF8C00"; // برتقالي ذهبي
+        ctx.beginPath(); ctx.ellipse(x, y, 18, 10, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(x-12, y); ctx.lineTo(x-25, y-12); ctx.lineTo(x-25, y+12); ctx.fill();
+        ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(x+10, y-3, 3, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
     }
 
-    // رسم الوحش
-    function drawMonster(x, y, type) {
-        ctx.fillStyle = "#333";
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+100, y+50); ctx.lineTo(x, y+100); ctx.fill();
-        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(x+70, y+40, 5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(x+70, y+60, 5, 0, Math.PI*2); ctx.fill();
+    // رسم الوحش (شكل وحش حقيقي مخيف)
+    function drawMonster(x, y) {
+        ctx.save();
+        ctx.fillStyle = "#222"; // جسم أسود
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+120, y+60); ctx.lineTo(x, y+120); ctx.fill();
+        // عيون حمراء متوهجة
+        ctx.fillStyle = "red";
+        ctx.beginPath(); ctx.arc(x+80, y+45, 6, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x+80, y+75, 6, 0, Math.PI*2); ctx.fill();
+        // أنياب
+        ctx.fillStyle = "white";
+        ctx.beginPath(); ctx.moveTo(x+90, y+60); ctx.lineTo(x+110, y+55); ctx.lineTo(x+90, y+50); ctx.fill();
+        ctx.restore();
     }
 
     window.setupStage = function() {
         overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -200;
+        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -250;
         obs = []; items = [];
         document.getElementById('lvlName').innerText = stages[cur].n;
         active = true; started = false;
@@ -113,7 +130,7 @@
 
     function die() {
         active = false;
-        document.getElementById('msg').innerText = "أمسك بك الوحش! 😿";
+        document.getElementById('msg').innerText = "أمسك بك الوحش! 🙀";
         document.getElementById('currentWallet').innerText = totalFish;
         overlay.style.display = 'flex';
     }
@@ -124,56 +141,58 @@
         ctx.fillStyle = s.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (active && started) {
-            p.v += 0.5; p.y += p.v; dist -= s.s / 10;
-            m.y += (p.y - m.y) * 0.05; m.x = Math.min(p.x - 140, m.x + 0.5);
+            p.v += 0.52; p.y += p.v; dist -= s.s / 10;
+            m.y += (p.y - m.y) * 0.06; m.x = Math.min(p.x - 160, m.x + 0.45);
 
-            if (dist > 50 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350)) {
-                let gapY = Math.random() * (canvas.height - 350) + 100;
-                obs.push({ x: canvas.width, y: gapY, g: 280 });
-                items.push({ x: canvas.width + 100, y: gapY + 140 });
+            if (dist > 50 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 360)) {
+                let gapY = Math.random() * (canvas.height - 380) + 100;
+                obs.push({ x: canvas.width, y: gapY, g: 300 });
+                items.push({ x: canvas.width + 120, y: gapY + 150 });
             }
 
             obs.forEach((o, i) => {
                 o.x -= s.s;
-                if(p.x+50 > o.x && p.x < o.x+60 && (p.y < o.y || p.y+40 > o.y+o.g)) die();
+                // تصادم الحواجز
+                if(p.x+60 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+50 > o.y+o.g)) die();
                 if(o.x < -100) obs.splice(i, 1);
             });
 
             items.forEach((f, i) => {
                 f.x -= s.s;
-                if(Math.hypot(p.x+30-f.x, p.y+30-f.y) < 40) { totalFish += 100; items.splice(i, 1); updateUI(); }
+                // تصادم السمكة
+                if(Math.hypot(p.x+35-f.x, p.y+35-f.y) < 50) { 
+                    totalFish += 100; 
+                    items.splice(i, 1); 
+                    document.getElementById('totalFish').innerText = totalFish;
+                }
             });
 
             if (dist <= 0) { 
                 cur++; if(cur >= stages.length) cur=0; 
-                document.getElementById('msg').innerText = "أحسنت! للمرحلة التالية 🏆";
+                document.getElementById('msg').innerText = "بطل! اجتزت المرحلة 🏆";
                 active = false; overlay.style.display = 'flex';
             }
 
-            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) die();
+            if(p.y > canvas.height || p.y < -100 || p.x < m.x + 110) die();
             document.getElementById('fill').style.width = (1 - (dist/1000))*100 + "%";
             document.getElementById('dist').innerText = Math.max(0, Math.floor(dist));
         }
 
-        // رسم الحواجز بالألوان المطلوبة
+        // رسم الحواجز بالألوان المتغيرة
         obs.forEach(o => {
             ctx.fillStyle = s.col;
-            ctx.fillRect(o.x, 0, 60, o.y);
-            ctx.fillRect(o.x, o.y+o.g, 60, canvas.height);
+            ctx.fillRect(o.x, 0, 70, o.y);
+            ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
         });
 
         items.forEach(f => drawFish(f.x, f.y));
         drawMonster(m.x, m.y);
-        drawHimalayanCat(p.x, p.y);
+        drawCat(p.x, p.y);
 
         requestAnimationFrame(loop);
     }
 
-    function updateUI() {
-        document.getElementById('totalFish').innerText = totalFish;
-    }
-
-    const trigger = () => { if(active) started = true; p.v = -9; };
+    const trigger = () => { if(active) started = true; p.v = -9.2; };
     window.addEventListener('mousedown', trigger);
     window.addEventListener('touchstart', (e) => { e.preventDefault(); trigger(); }, {passive: false});
     loop();
