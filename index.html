@@ -3,213 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>القطة الهيمالايا: الهروب من الذئب</title>
+    <title>رهف الهيمالايا - النسخة الذهبية 2026</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #010409; font-family: 'Arial', sans-serif; touch-action: none; }
-        
-        /* شاشة البداية الاحترافية */
+        body { margin: 0; overflow: hidden; background: #050510; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        canvas { display: block; }
+        #ui { 
+            position: absolute; top: 20px; width: 100%; display: flex; 
+            justify-content: space-around; color: #f1c40f; font-weight: bold; font-size: 22px; 
+            z-index: 10; pointer-events: none; text-shadow: 2px 2px 4px #000;
+        }
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.9)), url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
-            background-size: cover; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; color: white; z-index: 1000; 
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; color: white; z-index: 1000; text-align: center;
         }
-
-        .menu-card {
-            background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px);
-            padding: 30px; border-radius: 25px; border: 2px solid rgba(255, 215, 0, 0.3);
-            text-align: center; box-shadow: 0 0 50px rgba(0,0,0,1);
-        }
-
+        .card { background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; border: 2px solid #f1c40f; }
         button { 
-            padding: 15px 45px; font-size: 24px; cursor: pointer; border-radius: 50px; 
-            background: #f1c40f; color: #000; border: none; font-weight: bold;
-            box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4); transition: 0.3s;
+            padding: 15px 40px; font-size: 22px; cursor: pointer; border-radius: 50px; 
+            background: #27ae60; color: white; border: none; font-weight: bold; margin-top: 20px;
+            box-shadow: 0 5px 0 #1e8449;
         }
-        button:hover { transform: scale(1.05); background: #f39c12; }
-
-        /* واجهة المعلومات أثناء اللعب */
-        #hud {
-            position: absolute; top: 20px; width: 100%; display: flex;
-            justify-content: space-around; color: #f1c40f; font-weight: bold;
-            font-size: 20px; z-index: 10; pointer-events: none; text-shadow: 2px 2px 5px #000;
-        }
-
-        .progress-container {
-            position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-            width: 200px; height: 10px; background: rgba(255,255,255,0.2);
-            border-radius: 5px; overflow: hidden; border: 1px solid #fff;
-        }
-        #fill { width: 0%; height: 100%; background: #00ffcc; box-shadow: 0 0 10px #00ffcc; }
+        button:active { transform: translateY(4px); box-shadow: none; }
     </style>
 </head>
 <body>
 
-<div id="hud">
-    <div>🐠 السمك: <span id="fishCount">0</span></div>
-    <div id="lvlTxt">المرحلة 1</div>
-    <div>🏁 المسافة: <span id="distTxt">1000</span>m</div>
+<div id="ui">
+    <div>🐟 السمك: <span id="score">0</span></div>
+    <div>المرحلة: <span id="lvl">1</span></div>
+    <div>🏁 المسافة: <span id="dist">1000</span></div>
 </div>
-<div class="progress-container"><div id="fill"></div></div>
 
 <div id="overlay">
-    <div class="menu-card">
-        <h1 style="color: #f1c40f; margin: 0;"»مغامرة القطة رهف 🐾</h1>
-        <p style="font-size: 18px;">الذئب السيبيري يقترب.. هل يمكنك الهروب؟</p>
-        <button onclick="startGame()">إبدأ التحدي الآن ✨</button>
-        <div style="margin-top: 20px; font-size: 14px; color: #00ffcc;">
-            استخدم النقرات للقفز وجمع السمك 🐠
-        </div>
+    <div class="card">
+        <h1 id="title">مغامرة رهف الهيمالايا 🐾</h1>
+        <p>الذئب السيبيري جائع ويطاردك! اقفز للنجاة.</p>
+        <button onclick="initGame()">إبدأ الهروب الآن 🚀</button>
     </div>
 </div>
 
-<canvas id="gameCanvas"></canvas>
+<canvas id="g"></canvas>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const cvs = document.getElementById('g');
+    const ctx = cvs.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const distEl = document.getElementById('dist');
     const overlay = document.getElementById('overlay');
-    
-    // روابط الصور الحقيقية المحسنة
-    const assets = {
-        cat: 'https://cdn-icons-png.flaticon.com/512/616/616430.png',
-        wolf: 'https://cdn-icons-png.flaticon.com/512/2353/2353678.png',
-        fish: 'https://cdn-icons-png.flaticon.com/512/2415/2415077.png',
-        cabin: 'https://cdn-icons-png.flaticon.com/512/2237/2237837.png'
-    };
 
-    const img = {};
-    Object.keys(assets).forEach(key => {
-        img[key] = new Image();
-        img[key].src = assets[key];
-    });
+    let active = false, score = 0, distance = 1000, frame = 0;
+    let cat = { x: 150, y: 0, v: 0, s: 60 };
+    let wolf = { x: -100, y: 0, s: 90 };
+    let obs = [], items = [];
 
-    let gameActive = false;
-    let score = 0;
-    let distance = 1000;
-    let frame = 0;
-    let cat = { x: 200, y: 0, v: 0, size: 80 };
-    let wolf = { x: -150, y: 0, size: 120 };
-    let obstacles = [];
-    let fishes = [];
-    let cabinX = -500;
+    function resize() { cvs.width = window.innerWidth; cvs.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function startGame() {
+    function initGame() {
         overlay.style.display = 'none';
-        gameActive = true;
-        distance = 1000;
-        cat.y = canvas.height / 2;
-        cat.v = 0;
-        wolf.x = -150;
-        obstacles = [];
-        fishes = [];
-        cabinX = -500;
+        score = 0; distance = 1000; frame = 0;
+        cat.y = cvs.height / 2; cat.v = 0;
+        wolf.x = -100;
+        obs = []; items = [];
+        active = true;
     }
 
     function die() {
-        gameActive = false;
+        active = false;
         overlay.style.display = 'flex';
-        document.querySelector('h1').innerText = "للأسف أمسك بك الذئب! 🐺";
-        document.querySelector('button').innerText = "حاول مرة أخرى 🔄";
-    }
-
-    function update() {
-        if (!gameActive) return;
-
-        frame++;
-        cat.v += 0.5; // الجاذبية
-        cat.y += cat.v;
-
-        // حركة الذئب (المطاردة من الخلف)
-        wolf.y += (cat.y - wolf.y) * 0.08;
-        wolf.x = Math.min(cat.x - 130, wolf.x + 0.4);
-
-        distance -= 0.8;
-        if (distance <= 0) {
-            if (cabinX === -500) cabinX = canvas.width;
-            cabinX -= 7;
-            if (cat.x > cabinX + 50) startGame(); // الانتقال لمرحلة جديدة
-        }
-
-        // توليد العوائق والسمك
-        if (distance > 50 && frame % 100 === 0) {
-            let gapY = Math.random() * (canvas.height - 300) + 100;
-            obstacles.push({ x: canvas.width, y: gapY, w: 50, g: 280 });
-            fishes.push({ x: canvas.width + 100, y: gapY + 140 });
-        }
-
-        // تحريك العوائق وفحص التصادم
-        obstacles.forEach((o, i) => {
-            o.x -= 7;
-            if (cat.x + 40 > o.x && cat.x < o.x + o.w && (cat.y < o.y || cat.y + 40 > o.y + o.g)) die();
-            if (o.x < -100) obstacles.splice(i, 1);
-        });
-
-        // جمع السمك
-        fishes.forEach((f, i) => {
-            f.x -= 7;
-            if (Math.hypot(cat.x - f.x, cat.y - f.y) < 50) {
-                score += 10;
-                fishes.splice(i, 1);
-            }
-        });
-
-        if (cat.y > canvas.height || cat.y < -50 || cat.x < wolf.x + 80) die();
-
-        // تحديث الواجهة
-        document.getElementById('fishCount').innerText = score;
-        document.getElementById('distTxt').innerText = Math.max(0, Math.floor(distance));
-        document.getElementById('fill').style.width = (1 - distance/1000) * 100 + "%";
+        document.getElementById('title').innerText = "للأسف! أمسك بك الذئب 🐺";
     }
 
     function draw() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // رسم الخلفية
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
 
-        // رسم الخلفية (تدرج ليلي)
-        let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-        grad.addColorStop(0, '#020617');
-        grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (active) {
+            frame++;
+            cat.v += 0.5; cat.y += cat.v; // جاذبية
+            distance -= 0.5;
 
-        // رسم الكوخ
-        if (cabinX > -500) ctx.drawImage(img.cabin, cabinX, canvas.height/2 - 100, 180, 180);
+            // مطاردة الذئب (خلف القطة)
+            wolf.y += (cat.y - wolf.y) * 0.07;
+            wolf.x = Math.min(cat.x - 120, wolf.x + 0.35);
 
-        // رسم الذئب (خلف القطة ووجهه لليمين)
+            // توليد العوائق والسمك
+            if (frame % 120 === 0) {
+                let g = Math.random() * (cvs.height - 300) + 100;
+                obs.push({ x: cvs.width, y: g, gap: 280 });
+                items.push({ x: cvs.width + 50, y: g + 140 });
+            }
+
+            // حركة العوائق
+            obs.forEach((o, i) => {
+                o.x -= 6;
+                ctx.fillStyle = '#f1c40f';
+                ctx.fillRect(o.x, 0, 40, o.y);
+                ctx.fillRect(o.x, o.y + o.gap, 40, cvs.height);
+                // تصادم
+                if (cat.x+40 > o.x && cat.x < o.x+40 && (cat.y < o.y || cat.y+40 > o.y+o.gap)) die();
+                if (o.x < -50) obs.splice(i, 1);
+            });
+
+            // جمع السمك
+            items.forEach((f, i) => {
+                f.x -= 6;
+                ctx.font = "40px Arial";
+                ctx.fillText("🐟", f.x, f.y);
+                if (Math.hypot(cat.x - f.x, cat.y - f.y) < 50) { score += 100; items.splice(i, 1); }
+            });
+
+            if (cat.y > cvs.height || cat.y < -50 || cat.x < wolf.x + 70) die();
+
+            scoreEl.innerText = score;
+            distEl.innerText = Math.floor(distance);
+        }
+
+        // رسم الذئب (Emoji لضمان العمل)
+        ctx.font = wolf.s + "px Arial";
         ctx.save();
-        ctx.translate(wolf.x + wolf.size, wolf.y + Math.sin(frame*0.2)*10);
-        ctx.scale(-1, 1);
-        ctx.drawImage(img.wolf, 0, 0, wolf.size, wolf.size);
+        ctx.translate(wolf.x + wolf.s/2, wolf.y + wolf.s/2 + Math.sin(frame*0.2)*10);
+        ctx.scale(-1, 1); // وجهه لليمين يطارد القطة
+        ctx.fillText("🐺", -wolf.s/2, wolf.s/2);
         ctx.restore();
 
-        // رسم العوائق
-        ctx.fillStyle = "#f1c40f";
-        obstacles.forEach(o => {
-            ctx.shadowBlur = 15; ctx.shadowColor = "#f1c40f";
-            ctx.fillRect(o.x, 0, o.w, o.y);
-            ctx.fillRect(o.x, o.y + o.g, o.w, canvas.height);
-        });
-        ctx.shadowBlur = 0;
+        // رسم القطة (Emoji هيمالايا)
+        ctx.font = cat.s + "px Arial";
+        ctx.fillText("🐱", cat.x, cat.y + cat.s);
 
-        // رسم السمك
-        fishes.forEach(f => ctx.drawImage(img.fish, f.x, f.y, 50, 40));
-
-        // رسم القطة الهيمالايا
-        ctx.drawImage(img.cat, cat.x, cat.y, cat.size, cat.size);
-
-        update();
         requestAnimationFrame(draw);
     }
 
-    window.addEventListener('mousedown', () => { if(gameActive) cat.v = -9; });
-    window.addEventListener('touchstart', (e) => { e.preventDefault(); if(gameActive) cat.v = -9; }, {passive: false});
+    const jump = () => { if(active) cat.v = -9; };
+    window.addEventListener('mousedown', jump);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, {passive: false});
 
     draw();
 </script>
