@@ -21,11 +21,11 @@
 <div id="ui">
     <div id="lvlName" style="font-size: 24px; font-weight: bold;">المرحلة 1</div>
     <div class="bar"><div id="fill"></div></div>
-    <div style="color:#f1c40f; font-size: 20px;">🐟 السمك: <span id="fCount">0</span> | 🐆 المسافة: <span id="dCount">1000</span></div>
+    <div style="color:#f1c40f; font-size: 20px;">🐟 السمك: <span id="fCount">0</span> | 📏 المسافة: <span id="dCount">1000</span></div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg" style="font-size: 40px;">مغامرة القطة هملايا 🐾</h1>
+    <h1 id="msg" style="font-size: 40px;">مغامرة القطة هملايا 🐱</h1>
     <p>اجمع السمك وادخل الكوخ لتنتقل للمرحلة التالية!</p>
     <button id="startBtn" onclick="initGame()">ساعد القطة للنجاة هيا انطلق الآن 🚀</button>
 </div>
@@ -84,7 +84,7 @@
                 if(Math.random() > 0.8) items.push({ x: canvas.width + 200, y: h - 50, type: 'coupon' });
             }
 
-            // الكوخ يظهر في نهاية المرحلة
+            // الكوخ الكبير يظهر في نهاية المرحلة
             if (dist <= 0 && !house) {
                 house = { x: canvas.width, y: p.y - 50 };
             }
@@ -99,7 +99,7 @@
                 f.x -= (6 + level * 0.3);
                 if(Math.hypot(p.x-f.x, p.y-f.y) < 50) {
                     if(f.type === 'fish') { fish += 100; playCoinSound(); }
-                    else { fish += 500; } // كوبون
+                    else { fish += 500; } // كوبون ونقود
                     items.splice(i, 1);
                 }
             });
@@ -114,7 +114,7 @@
             }
 
             if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) active = false;
-            if(!active && dist > 0) { document.getElementById('msg').innerText = "أمسك بك الوحش! 🐈"; overlay.style.display = 'flex'; }
+            if(!active && dist > 0) { document.getElementById('msg').innerText = "أمسك بك الوحش! 🐱"; overlay.style.display = 'flex'; }
 
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
             document.getElementById('fCount').innerText = fish;
@@ -130,7 +130,7 @@
         // رسم العناصر (سمك وكوبونات)
         ctx.font = "40px Arial";
         items.forEach(f => {
-            ctx.fillText(f.type === 'fish' ? "🐟" : "💰", f.x, f.y);
+            ctx.fillText(f.type === 'fish' ? "🐠" : "💰", f.x, f.y);
         });
 
         // رسم الكوخ
@@ -140,7 +140,7 @@
         ctx.fillText("🐈‍⬛", m.x + 80, m.y + 60);
 
         // رسم القطة الهملايا (قطة حقيقية)
-        ctx.fillText("🐈", p.x, p.y + 40);
+        ctx.fillText("🐱", p.x, p.y + 40);
 
         requestAnimationFrame(loop);
     }
