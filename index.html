@@ -3,9 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Cat - 20 Epic Stages</title>
+    <title>Himalayan Cat - 20 Mastered Stages</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; pointer-events: none; z-index: 10; }
+        .bar { width: 70%; height: 12px; background: #333; margin: 8px auto; border-radius: 6px; overflow: hidden; border: 1px solid #555; }
+        #fill { width: 0%; height: 100%; background: #00ff00; }
+        #overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.95); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; color: white; z-index: 1000; 
+        }
+        button { 
+            padding: 20px 50px; font-size: 24px; cursor: pointer; border-radius: 15px; 
+            border: none; background: #27ae60; color: white; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        .info { font-size: 14px; color: #f1c40f; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="lvlName" style="font-size: 22px; font-weight: bold;">المرحلة 1</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div class="info">المسافة: <span id="dist">1000</span>m | النقاط: <span id="score">0</span></div>
+</div>
+
+<div id="overlay">
+    <h1 id="msg">مغامرة العشرين مرحلة</h1>
+    <p id="subMsg" style="color: #ccc;">تجاوز العقبات للوصول للكوخ</p>
+    <button id="btn" onclick="setupStage()">ابدأ الآن 🐾</button>
+</div>
+
+<canvas id="c"></canvas>
+
+<script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const msg = document.getElementById('msg');
+
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize); resize();
+
+    // إعداد الـ 7 مراحل بإتقان
+    const stages = [
+        { n: "غابة الذئاب", m: "wolf", bg: "#0a0a0a", col: "#FFFF00", speed: 5 },
+        { n: "مقبرة الأشباح", m: "ghost", bg: "#1a0033", col: "#00FF00", speed: 7 },
+        { n: "جبال النسور", m: "eagle", bg: "#001a33", col: "#FFFFFF", speed: 9 },
+        { n: "وادي الأفاعي", m: "snake", bg: "#0d1a0d", col: "#FF8C00", speed: 11 },
+        { n: "نهر التماسيح", m: "croc", bg: "#002b2b", col: "#40E0D0", speed: 12 },
+        { n: "عرين الأسد", m: "lion", bg: "#2c1e00", col: "#FF4500", speed: 13 },
+        { n: "كهف التنين", m: "dragon", bg: "#1a0500", col: "#FF0000", speed: 15 }
+    ];
+
+    const I = {
+        cat: 'https://img.icons8.com/color/96/cat--v1.png',
+        wolf: 'https://img.icons8.com/color/150/wolf.png',
+        ghost: 'https://img.icons8.com/color/150/ghost.png',
+        eagle: 'https://img.icons8.com/color/150/eagle.png',
+        snake: 'https://img.icons8.com/color/150/snake.png',
+        croc: 'https://img.icons8.com/color/150/crocodile.png',
+        lion: 'https://img.icons8.com/color/150/lion.png',
+        dragon: 'https://img.icons8.com/color/150/dragon.png',
+        fish: 'https://img.icons8.com/color/48/fish.png',
+        cabin: 'https://img.icons8.com/color/200/log-cabin.png'
+    };
+    const imgs = {};
+    for(let k in I) { imgs[k] = new Image(); imgs[k].src = I[k]; }
+
+    let cur = 0, score = 0, dist = 1000, active = false, started = false;
+    let p = { x: 100, y: 0, v: 0 }, m = { x: -150, y: 0 }, obs = [], items = [], cabinX = -500;
+
+    window.setupStage = function() {
+        overlay.style.display = 'none';
+        const s = stages[{ margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
         #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; text-shadow: 0 0 10px #ff00ff; }
         .bar { width: 75%; height: 16px; background: rgba(255,255,255,0.1); margin: 10px auto; border-radius: 10px; overflow: hidden; border: 2px solid #fff; }
         #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000); box-shadow: 0 0 20px #00ff00; transition: width 0.3s; }
