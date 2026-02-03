@@ -3,138 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>رهف الهيمالايا - النسخة الذهبية 2026</title>
+    <title>Golden Cat Run 2026</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #050510; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
-        canvas { display: block; }
-        #ui { 
-            position: absolute; top: 20px; width: 100%; display: flex; 
-            justify-content: space-around; color: #f1c40f; font-weight: bold; font-size: 22px; 
-            z-index: 10; pointer-events: none; text-shadow: 2px 2px 4px #000;
-        }
-        #overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; color: white; z-index: 1000; text-align: center;
-        }
-        .card { background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; border: 2px solid #f1c40f; }
-        button { 
-            padding: 15px 40px; font-size: 22px; cursor: pointer; border-radius: 50px; 
-            background: #27ae60; color: white; border: none; font-weight: bold; margin-top: 20px;
-            box-shadow: 0 5px 0 #1e8449;
-        }
-        button:active { transform: translateY(4px); box-shadow: none; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; touch-action: none; }
+        #gameUI { position: absolute; top: 10px; width: 100%; text-align: center; color: #f1c40f; font-size: 24px; font-weight: bold; pointer-events: none; z-index: 10; text-shadow: 2px 2px #000; }
+        #menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; color: #fff; z-index: 100; }
+        .btn { padding: 15px 50px; font-size: 28px; cursor: pointer; border-radius: 50px; background: #27ae60; color: white; border: none; box-shadow: 0 5px 0 #1e8449; }
+        .btn:active { transform: translateY(5px); box-shadow: none; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div>🐟 السمك: <span id="score">0</span></div>
-    <div>المرحلة: <span id="lvl">1</span></div>
-    <div>🏁 المسافة: <span id="dist">1000</span></div>
+<div id="gameUI">🐟 السمك: <span id="s">0</span> | 🏁 المسافة: <span id="d">1000</span>m</div>
+
+<div id="menu">
+    <h1 style="color:#f1c40f; font-size: 40px;">مغامرة القطة رهف 🐾</h1>
+    <p>الذئب يطاردك من الخلف.. اقفز للنجاة!</p>
+    <button class="btn" onclick="start()">إبدأ الآن 🚀</button>
 </div>
 
-<div id="overlay">
-    <div class="card">
-        <h1 id="title">مغامرة رهف الهيمالايا 🐾</h1>
-        <p>الذئب السيبيري جائع ويطاردك! اقفز للنجاة.</p>
-        <button onclick="initGame()">إبدأ الهروب الآن 🚀</button>
-    </div>
-</div>
-
-<canvas id="g"></canvas>
+<canvas id="canvas"></canvas>
 
 <script>
-    const cvs = document.getElementById('g');
-    const ctx = cvs.getContext('2d');
-    const scoreEl = document.getElementById('score');
-    const distEl = document.getElementById('dist');
-    const overlay = document.getElementById('overlay');
-
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
     let active = false, score = 0, distance = 1000, frame = 0;
-    let cat = { x: 150, y: 0, v: 0, s: 60 };
-    let wolf = { x: -100, y: 0, s: 90 };
-    let obs = [], items = [];
+    let cat = { x: 180, y: 0, v: 0, s: 70 };
+    let wolf = { x: -120, y: 0, s: 100 };
+    let pipes = [], fishItems = [];
 
-    function resize() { cvs.width = window.innerWidth; cvs.height = window.innerHeight; }
-    window.addEventListener('resize', resize); resize();
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-    function initGame() {
-        overlay.style.display = 'none';
+    function start() {
+        document.getElementById('menu').style.display = 'none';
         score = 0; distance = 1000; frame = 0;
-        cat.y = cvs.height / 2; cat.v = 0;
-        wolf.x = -100;
-        obs = []; items = [];
+        cat.y = canvas.height / 2; cat.v = 0;
+        wolf.x = -120;
+        pipes = []; fishItems = [];
         active = true;
     }
 
-    function die() {
+    function gameOver() {
         active = false;
-        overlay.style.display = 'flex';
-        document.getElementById('title').innerText = "للأسف! أمسك بك الذئب 🐺";
+        document.getElementById('menu').style.display = 'flex';
+        document.querySelector('h1').innerText = "أمسك بك الذئب! 🐺";
+        document.querySelector('button').innerText = "إعادة المحاولة 🔄";
+    }
+
+    function update() {
+        if (!active) return;
+
+        frame++;
+        cat.v += 0.5; // الجاذبية
+        cat.y += cat.v;
+
+        // مطاردة الذئب (خلف القطة دائماً)
+        wolf.y += (cat.y - wolf.y) * 0.08;
+        wolf.x = Math.min(cat.x - 130, wolf.x + 0.4);
+
+        distance -= 0.6;
+        if (distance <= 0) start(); // فوز أو مرحلة تالية
+
+        // توليد العوائق
+        if (frame % 100 === 0) {
+            let gap = 280;
+            let pos = Math.random() * (canvas.height - gap - 200) + 100;
+            pipes.push({ x: canvas.width, y: pos, g: gap });
+            fishItems.push({ x: canvas.width + 50, y: pos + gap/2 });
+        }
+
+        pipes.forEach((p, i) => {
+            p.x -= 7;
+            if (cat.x + 40 > p.x && cat.x < p.x + 50 && (cat.y < p.y || cat.y + 40 > p.y + p.g)) gameOver();
+            if (p.x < -100) pipes.splice(i, 1);
+        });
+
+        fishItems.forEach((f, i) => {
+            f.x -= 7;
+            if (Math.hypot(cat.x - f.x, cat.y - f.y) < 50) {
+                score += 100;
+                fishItems.splice(i, 1);
+            }
+        });
+
+        if (cat.y > canvas.height || cat.y < -50 || cat.x < wolf.x + 80) gameOver();
+
+        document.getElementById('s').innerText = score;
+        document.getElementById('d').innerText = Math.max(0, Math.floor(distance));
     }
 
     function draw() {
-        // رسم الخلفية
-        ctx.fillStyle = '#050510';
-        ctx.fillRect(0, 0, cvs.width, cvs.height);
+        // خلفية السماء الليلية
+        ctx.fillStyle = '#0a0a2c';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         if (active) {
-            frame++;
-            cat.v += 0.5; cat.y += cat.v; // جاذبية
-            distance -= 0.5;
-
-            // مطاردة الذئب (خلف القطة)
-            wolf.y += (cat.y - wolf.y) * 0.07;
-            wolf.x = Math.min(cat.x - 120, wolf.x + 0.35);
-
-            // توليد العوائق والسمك
-            if (frame % 120 === 0) {
-                let g = Math.random() * (cvs.height - 300) + 100;
-                obs.push({ x: cvs.width, y: g, gap: 280 });
-                items.push({ x: cvs.width + 50, y: g + 140 });
-            }
-
-            // حركة العوائق
-            obs.forEach((o, i) => {
-                o.x -= 6;
-                ctx.fillStyle = '#f1c40f';
-                ctx.fillRect(o.x, 0, 40, o.y);
-                ctx.fillRect(o.x, o.y + o.gap, 40, cvs.height);
-                // تصادم
-                if (cat.x+40 > o.x && cat.x < o.x+40 && (cat.y < o.y || cat.y+40 > o.y+o.gap)) die();
-                if (o.x < -50) obs.splice(i, 1);
+            // رسم العوائق
+            ctx.fillStyle = '#f1c40f';
+            pipes.forEach(p => {
+                ctx.fillRect(p.x, 0, 50, p.y);
+                ctx.fillRect(p.x, p.y + p.g, 50, canvas.height);
             });
 
-            // جمع السمك
-            items.forEach((f, i) => {
-                f.x -= 6;
-                ctx.font = "40px Arial";
-                ctx.fillText("🐟", f.x, f.y);
-                if (Math.hypot(cat.x - f.x, cat.y - f.y) < 50) { score += 100; items.splice(i, 1); }
-            });
+            // رسم السمك
+            ctx.font = "40px Arial";
+            fishItems.forEach(f => ctx.fillText("🐠", f.x, f.y));
 
-            if (cat.y > cvs.height || cat.y < -50 || cat.x < wolf.x + 70) die();
+            // رسم الذئب (خلف القطة)
+            ctx.save();
+            ctx.translate(wolf.x + wolf.s, wolf.y + Math.sin(frame*0.2)*15);
+            ctx.scale(-1, 1); // وجه الذئب لليمين باتجاه القطة
+            ctx.fillText("🐺", 0, wolf.s/2);
+            ctx.restore();
 
-            scoreEl.innerText = score;
-            distEl.innerText = Math.floor(distance);
+            // رسم القطة (رهف)
+            ctx.fillText("🐱", cat.x, cat.y + cat.s/2);
         }
 
-        // رسم الذئب (Emoji لضمان العمل)
-        ctx.font = wolf.s + "px Arial";
-        ctx.save();
-        ctx.translate(wolf.x + wolf.s/2, wolf.y + wolf.s/2 + Math.sin(frame*0.2)*10);
-        ctx.scale(-1, 1); // وجهه لليمين يطارد القطة
-        ctx.fillText("🐺", -wolf.s/2, wolf.s/2);
-        ctx.restore();
-
-        // رسم القطة (Emoji هيمالايا)
-        ctx.font = cat.s + "px Arial";
-        ctx.fillText("🐱", cat.x, cat.y + cat.s);
-
+        update();
         requestAnimationFrame(draw);
     }
 
+    // التحكم
     const jump = () => { if(active) cat.v = -9; };
     window.addEventListener('mousedown', jump);
     window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); }, {passive: false});
