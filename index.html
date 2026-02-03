@@ -18,11 +18,11 @@
 <div id="ui">
     <div id="lvlName" style="font-size: 26px; font-weight: bold; color: #00ffcc;">المرحلة 1</div>
     <div class="bar"><div id="fill"></div></div>
-    <div style="font-size: 18px;">🐠: <span id="fCount">0</span> | 🚩: <span id="dCount">1000</span>m</div>
+    <div style="font-size: 18px; font-weight:bold;">🐠: <span id="fCount">0</span> | 🚩: <span id="dCount">1000</span>m</div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg">هروب القطة الهملايا 🐾</h1>
+    <h1 id="msg">هروب القطة الذكي 🐾</h1>
     <p>اهرب من الذئب نحو الكوخ الآمن</p>
     <button onclick="initGame()">انطلق الآن 🚀</button>
 </div>
@@ -34,62 +34,38 @@
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
 
-    let active = false, started = false, level = 0, fish = 0, dist = 1000, frame = 0;
-    let p = { x: 180, y: 0, v: 0 }, m = { x: -250, y: 0 }, obs = [], items = [], house = null;
+    let active = false, started = false, level = 0, fish = 0, dist = 1000;
+    let p = { x: 180, y: 0, v: 0 }, m = { x: -300, y: 0 }, obs = [], items = [], house = null;
 
     const colors = ["#00ffcc", "#3498db", "#2ecc71", "#e74c3c", "#9b59b6", "#f1c40f", "#e67e22", "#1abc9c", "#34495e", "#c0392b", "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#f39c12", "#d35400", "#7f8c8d", "#dcdde1", "#44bd32", "#0652DD"];
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
-    // رسم القطة برمجياً لضمان الظهور
-    function drawCat(x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-        let walk = Math.sin(frame * 0.2) * 8;
-        ctx.fillStyle = "#4E342E"; ctx.fillRect(15, 30, 8, 15+walk); ctx.fillRect(40, 30, 8, 15-walk); // أرجل
-        ctx.fillStyle = "#FDF5E6"; ctx.beginPath(); ctx.ellipse(30, 20, 35, 22, 0, 0, Math.PI*2); ctx.fill(); // جسم
-        ctx.fillStyle = "#3E2723"; ctx.beginPath(); ctx.arc(55, 12, 12, 0, Math.PI*2); ctx.fill(); // وجه
-        ctx.fillStyle = "#00BFFF"; ctx.beginPath(); ctx.arc(58, 10, 3, 0, Math.PI*2); ctx.fill(); // عيون
-        ctx.restore();
-    }
-
-    // رسم الذئب برمجياً لضمان الظهور
-    function drawWolf(x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-        let walk = Math.sin(frame * 0.3) * 10;
-        ctx.fillStyle = "#222"; ctx.fillRect(20, 45, 12, 20+walk); ctx.fillRect(65, 45, 12, 20-walk); // أرجل
-        ctx.fillStyle = "#555"; ctx.beginPath(); ctx.ellipse(50, 25, 55, 28, 0, 0, Math.PI*2); ctx.fill(); // جسم
-        ctx.beginPath(); ctx.moveTo(95, 5); ctx.lineTo(135, 25); ctx.lineTo(95, 45); ctx.fill(); // رأس
-        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(110, 20, 4, 0, Math.PI*2); ctx.fill(); // عيون
-        ctx.restore();
-    }
-
     window.initGame = function() {
         overlay.style.display = 'none';
-        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -250;
-        obs = []; items = []; house = null; frame = 0;
+        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -350;
+        obs = []; items = []; house = null;
         active = true; started = false;
         document.getElementById('lvlName').innerText = "المرحلة " + (level + 1);
     };
 
     function loop() {
         ctx.fillStyle = "#0a0a0a"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        frame++;
 
         if (active && started) {
             p.v += 0.52; p.y += p.v; 
             if (dist > 0) dist -= 0.8;
 
-            m.y += (p.y - m.y) * 0.06;
-            m.x = Math.min(p.x - 150, m.x + (0.55 + level * 0.1));
+            m.y += (p.y - m.y) * 0.05;
+            m.x = Math.min(p.x - 120, m.x + (0.55 + level * 0.12));
 
-            if (p.x - m.x < 180 && frame % 10 === 0 && navigator.vibrate) navigator.vibrate(30);
+            // اهتزاز الجوال عند اقتراب الذئب
+            if (p.x - m.x < 150 && Math.random() > 0.8 && navigator.vibrate) navigator.vibrate(20);
 
             if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 380)) {
                 let h = Math.random() * (canvas.height - 350) + 100;
-                obs.push({ x: canvas.width, y: h, g: 300 - (level * 4) });
+                obs.push({ x: canvas.width, y: h, g: 300 - (level * 3) });
                 items.push({ x: canvas.width + 120, y: h + 150 });
             }
 
@@ -97,19 +73,20 @@
 
             obs.forEach((o, i) => {
                 o.x -= (6.5 + level * 0.3);
-                if(p.x+70 > o.x && p.x < o.x+70 && (p.y < o.y || p.y+50 > o.y+o.g)) active = false;
+                if(p.x+60 > o.x && p.x < o.x+70 && (p.y-40 < o.y || p.y+40 > o.y+o.g)) active = false;
                 if(o.x < -100) obs.splice(i, 1);
             });
 
             if(house) {
                 house.x -= (6.5 + level * 0.3);
-                if(Math.hypot(p.x-house.x, p.y-house.y) < 80) {
+                if(Math.hypot(p.x-house.x, p.y-house.y) < 90) {
                     level = (level + 1) % 20; active = false;
-                    document.getElementById('msg').innerText = "دخلت الكوخ! 🏡"; overlay.style.display = 'flex';
+                    document.getElementById('msg').innerText = "نجوت بسلام! المرحلة القادمة: " + (level + 1);
+                    overlay.style.display = 'flex';
                 }
             }
 
-            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 100) active = false;
+            if(p.y > canvas.height || p.y < -50 || p.x < m.x + 80) active = false;
             if(!active && dist > 0) { 
                 document.getElementById('msg').innerText = "أمسك بك الذئب! 🐺"; 
                 if(navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -117,22 +94,30 @@
             }
 
             document.getElementById('fill').style.width = (1 - dist/1000)*100 + "%";
+            document.getElementById('fCount').innerText = fish;
             document.getElementById('dCount').innerText = Math.max(0, Math.floor(dist));
         }
 
+        // رسم الحواجز
         obs.forEach(o => {
-            ctx.fillStyle = colors[level % 20]; ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
+            ctx.fillStyle = colors[level % 20];
+            ctx.fillRect(o.x, 0, 70, o.y); ctx.fillRect(o.x, o.y+o.g, 70, canvas.height);
         });
 
-        if(house) { ctx.font = "70px Arial"; ctx.fillText("🏡", house.x, house.y + 60); }
+        // رسم الشخصيات والمنزل والسمك
+        ctx.font = "80px Arial";
+        if(house) ctx.fillText("🏡", house.x, house.y + 60);
+        
         items.forEach((f, i) => {
             f.x -= (started ? (6.5 + level * 0.3) : 0);
             ctx.font = "40px Arial"; ctx.fillText("🐠", f.x, f.y);
             if(Math.hypot(p.x-f.x, p.y-f.y) < 60) { fish+=10; items.splice(i,1); }
         });
 
-        drawWolf(m.x, m.y);
-        drawCat(p.x, p.y);
+        // رسم القطة والذئب (استخدام Emojis لضمان الظهور 100%)
+        ctx.font = "90px Arial";
+        ctx.fillText("🐺", m.x, m.y + 40); // الذئب
+        ctx.fillText("🐈", p.x, p.y + 40); // القطة
 
         requestAnimationFrame(loop);
     }
