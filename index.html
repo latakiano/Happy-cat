@@ -3,34 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Himalayan Escape - Restart</title>
+    <title>Himalayan Cat: 20 Monsters Challenge</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: 'Arial', sans-serif; touch-action: none; }
-        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: white; pointer-events: none; z-index: 10; }
-        .bar { width: 200px; height: 10px; background: #333; margin: 5px auto; border-radius: 5px; }
-        #progress { width: 0%; height: 100%; background: #00ff00; border-radius: 5px; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; touch-action: none; }
+        #ui { position: absolute; top: 15px; width: 100%; text-align: center; color: white; z-index: 10; pointer-events: none; }
+        .bar { width: 75%; height: 16px; background: rgba(255,255,255,0.1); margin: 10px auto; border-radius: 10px; border: 2px solid #fff; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        #fill { width: 0%; height: 100%; background: linear-gradient(90deg, #00ffcc, #ff00cc); transition: width 0.2s; }
         #overlay { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.85); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; color: white; z-index: 100; 
+            justify-content: center; align-items: center; color: white; z-index: 1000; text-align: center;
         }
+        .shop-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 20px; border: 2px solid #f1c40f; margin-top: 15px; width: 80%; max-width: 400px; }
         button { 
-            padding: 20px 40px; font-size: 24px; cursor: pointer; background: #27ae60; 
-            color: white; border: none; border-radius: 10px; font-weight: bold; margin-top: 20px;
+            padding: 12px 30px; font-size: 18px; cursor: pointer; border-radius: 50px; 
+            background: #27ae60; color: white; border: none; font-weight: bold; margin: 8px;
+            box-shadow: 0 4px 0 #1e8449; transition: 0.1s;
         }
+        button:active { transform: translateY(3px); box-shadow: none; }
+        .info { color:#f1c40f; font-size: 18px; font-weight: bold; text-shadow: 2px 2px 4px #000; }
+        .price { color: #00ffcc; font-size: 12px; display: block; }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="lvlTitle" style="font-size: 22px;">المرحلة 1</div>
-    <div class="bar"><div id="progress"></div></div>
-    <div>المسافة: <span id="dist">1000</span>m | النقاط: <span id="score">0</span></div>
+    <div id="lvlName" style="font-size: 22px; font-weight: bold; color: #00f2ff; text-shadow: 2px 2px 5px #000;">المرحلة 1</div>
+    <div class="bar"><div id="fill"></div></div>
+    <div class="info">🐟 السمك: <span id="totalFish">0</span> | 🏁 المسافة: <span id="dist">1000</span>m</div>
 </div>
 
 <div id="overlay">
-    <h1 id="msg">مغامرة القطة</h1>
-    <button id="btn" onclick="start()">ابدأ الآن 🐾</button>
+    <h1 id="msg" style="font-size: 2.5em; margin-bottom: 10px;">مغامرة القطة هملايا 🐾</h1>
+    <p id="subMsg">رصيدك الحالي: <span id="currentWallet">0</span> سمكة</p>
+    
+    <button onclick="setupStage()">دخول المرحلة القادمة ✨</button>
+
+    <div class="shop-box">
+        <h3 style="margin: 5px;">متجر القطة 🛒</h3>
+        <button onclick="buyShield()" style="background: #2980b9; box-shadow: 0 4px 0 #1a5276;">🛡️ درع حماية (1000 سمكة)</button>
+    </div>
 </div>
 
 <canvas id="c"></canvas>
@@ -39,131 +51,228 @@
     const canvas = document.getElementById('c');
     const ctx = canvas.getContext('2d');
     const overlay = document.getElementById('overlay');
-    const msg = document.getElementById('msg');
-    const btn = document.getElementById('btn');
+    let audioCtx, musicOsc, musicGain;
+    let totalFish = 0;
+    let hasShield = false;
+
+    // تهيئة الصوت والموسيقى لكل مرحلة
+    function playMusic(stageIndex) {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if(musicOsc) { musicOsc.stop(); }
+        
+        musicOsc = audioCtx.createOscillator();
+        musicGain = audioCtx.createGain();
+        
+        // تغيير اللحن بناءً على رقم المرحلة
+        const baseFreq = 100 + (stageIndex * 20); 
+        musicOsc.type = stageIndex % 2 === 0 ? 'triangle' : 'square';
+        musicOsc.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
+        
+        musicGain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        musicOsc.connect(musicGain);
+        musicGain.connect(audioCtx.destination);
+        musicOsc.start();
+    }
+
+    function playCollectSound() {
+        if(!audioCtx) return;
+        const t = audioCtx.currentTime;
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.frequency.setValueAtTime(800 + Math.random()*400, t);
+        g.gain.setValueAtTime(0.1, t);
+        g.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(t + 0.2);
+    }
+
+    window.buyShield = function() {
+        if(totalFish >= 1000) {
+            totalFish -= 1000;
+            hasShield = true;
+            alert("تم تفعيل الدرع! سيحميك من اصطدام واحد.");
+            updateUI();
+        } else { alert("تحتاج لمزيد من السمك!"); }
+    }
+
+    function updateUI() {
+        document.getElementById('totalFish').innerText = totalFish;
+        document.getElementById('currentWallet').innerText = totalFish;
+    }
 
     function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize); resize();
 
-    // الصور
+    // روابط الوحوش (وحوش حقيقية) والأسماك
     const I = {
-        cat: 'https://img.icons8.com/color/96/cat--v1.png',
-        wolf: 'https://img.icons8.com/color/150/wolf.png',
-        ghost: 'https://img.icons8.com/color/150/ghost.png',
-        eagle: 'https://img.icons8.com/color/150/eagle.png',
-        snake: 'https://img.icons8.com/color/150/snake.png',
-        fish: 'https://img.icons8.com/color/48/fish.png',
-        cabin: 'https://img.icons8.com/color/200/log-cabin.png'
+        cat: 'https://cdn-icons-png.flaticon.com/128/616/616430.png',
+        wolf: 'https://cdn-icons-png.flaticon.com/128/2353/2353678.png',
+        ghost: 'https://cdn-icons-png.flaticon.com/128/1213/1213233.png',
+        eagle: 'https://cdn-icons-png.flaticon.com/128/1820/1820042.png',
+        snake: 'https://cdn-icons-png.flaticon.com/128/2425/2425810.png',
+        croc: 'https://cdn-icons-png.flaticon.com/128/2810/2810057.png',
+        lion: 'https://cdn-icons-png.flaticon.com/128/616/616412.png',
+        dragon: 'https://cdn-icons-png.flaticon.com/128/2497/2497607.png',
+        bear: 'https://cdn-icons-png.flaticon.com/128/2353/2353681.png',
+        alien: 'https://cdn-icons-png.flaticon.com/128/1946/1946467.png',
+        shark: 'https://cdn-icons-png.flaticon.com/128/2056/2056345.png',
+        bat: 'https://cdn-icons-png.flaticon.com/128/1820/1820037.png',
+        spider: 'https://cdn-icons-png.flaticon.com/128/2056/2056382.png',
+        robot: 'https://cdn-icons-png.flaticon.com/128/2056/2056360.png',
+        dino: 'https://cdn-icons-png.flaticon.com/128/2353/2353665.png',
+        tiger: 'https://cdn-icons-png.flaticon.com/128/616/616421.png',
+        monster: 'https://cdn-icons-png.flaticon.com/128/1048/1048948.png',
+        pirate: 'https://cdn-icons-png.flaticon.com/128/1048/1048966.png',
+        volcano: 'https://cdn-icons-png.flaticon.com/128/2056/2056350.png',
+        ufo: 'https://cdn-icons-png.flaticon.com/128/1048/1048972.png',
+        fish: 'https://cdn-icons-png.flaticon.com/128/603/603310.png',
+        cabin: 'https://cdn-icons-png.flaticon.com/128/2237/2237837.png'
     };
-    const load = (src) => { let img = new Image(); img.src = src; return img; };
-    const imgs = { cat: load(I.cat), wolf: load(I.wolf), ghost: load(I.ghost), eagle: load(I.eagle), snake: load(I.snake), fish: load(I.fish), cabin: load(I.cabin) };
+
+    const imgs = {};
+    Object.keys(I).forEach(k => { imgs[k] = new Image(); imgs[k].src = I[k]; });
 
     const stages = [
-        { name: "غابة الذئاب", monster: "wolf", bg: "#0a0a0a", col: "#f1c40f", speed: 5 },
-        { name: "مقبرة الأشباح", monster: "ghost", bg: "#1a0033", col: "#2ecc71", speed: 7 },
-        { name: "جبال النسور", monster: "eagle", bg: "#001a33", col: "#ecf0f1", speed: 9 },
-        { name: "وادي الأفاعي", monster: "snake", bg: "#0d1a0d", col: "#e67e22", speed: 11 }
+        { n: "غابة الذئاب", m: "wolf", bg: "#0a1a0a", col: "#2ecc71", s: 6 },
+        { n: "وادي الأشباح", m: "ghost", bg: "#1a0033", col: "#9b59b6", s: 7 },
+        { n: "مرتفعات النسور", m: "eagle", bg: "#001a33", col: "#3498db", s: 7.5 },
+        { n: "جحور الأفاعي", m: "snake", bg: "#1a0d00", col: "#e67e22", s: 8 },
+        { n: "مستنقع التماسيح", m: "croc", bg: "#002b2b", col: "#16a085", s: 8.5 },
+        { n: "عرين الأسد", m: "lion", bg: "#2c1e00", col: "#f39c12", s: 9 },
+        { n: "كهف التنين", m: "dragon", bg: "#200000", col: "#c0392b", s: 9.5 },
+        { n: "القطب المتجمد", m: "bear", bg: "#e6fbff", col: "#bdc3c7", s: 10 },
+        { n: "المنطقة 51 الفضائية", m: "alien", bg: "#00001a", col: "#27ae60", s: 10.5 },
+        { n: "أعماق المحيط", m: "shark", bg: "#001040", col: "#2980b9", s: 11 },
+        { n: "برج الخفافيش", m: "bat", bg: "#0d0d0d", col: "#7f8c8d", s: 11.5 },
+        { n: "عش العناكب", m: "spider", bg: "#1a1a00", col: "#8e44ad", s: 12 },
+        { n: "مصنع الآليين", m: "robot", bg: "#1a1a1a", col: "#95a5a6", s: 12.5 },
+        { n: "عصر الديناصورات", m: "dino", bg: "#1a1300", col: "#d35400", s: 13 },
+        { n: "أدغال النمور", m: "tiger", bg: "#2a1a0a", col: "#e67e22", s: 13.5 },
+        { n: "المجهول المظلم", m: "monster", bg: "#10001a", col: "#c0392b", s: 14 },
+        { n: "سفينة القراصنة", m: "pirate", bg: "#000a1a", col: "#34495e", s: 14.5 },
+        { n: "فوهة البركان", m: "volcano", bg: "#2a0000", col: "#e74c3c", s: 15 },
+        { n: "المجرة البعيدة", m: "ufo", bg: "#000000", col: "#9b59b6", s: 16 },
+        { n: "النهاية: المواجهة الكبرى", m: "dragon", bg: "#000", col: "#f1c40f", s: 18 }
     ];
 
-    let cur = 0, score = 0, dist = 1000, active = false, jumping = false;
-    let p = { x: 100, y: 0, w: 50, h: 50, v: 0 };
-    let m = { x: -150, y: 0 };
-    let obs = [], prizes = [], cabinX = -500;
+    let cur = 0, dist = 1000, active = false, started = false, frame = 0;
+    let p = { x: 120, y: 0, v: 0 }, m = { x: -150, y: 0 }, obs = [], items = [], cabinX = -500;
 
-    window.start = () => {
+    window.setupStage = function() {
         overlay.style.display = 'none';
-        let s = stages[cur];
-        document.getElementById('lvlTitle').innerText = "مرحلة " + (cur+1) + ": " + s.name;
-        dist = 1000;
-        p.y = canvas.height/2; p.v = 0;
-        m.x = -150; m.y = canvas.height/2;
-        obs = []; prizes = []; cabinX = -500;
-        active = true;
+        dist = 1000; p.y = canvas.height/2; p.v = 0; m.x = -150;
+        obs = []; items = []; cabinX = -500;
+        document.getElementById('lvlName').innerText = `المرحلة ${cur+1}: ${stages[cur].n}`;
+        updateUI();
+        playMusic(cur);
+        active = true; started = false;
     };
 
-    function die() {
-        active = false;
-        msg.innerText = "أمسك بك المفترس!";
-        btn.innerText = "إعادة المحاولة";
-        overlay.style.display = 'flex';
+    function die() { 
+        if(hasShield) { 
+            hasShield = false; 
+            p.v = -10; 
+            return; 
+        }
+        active = false; started = false;
+        if(musicOsc) musicOsc.stop();
+        document.getElementById('msg').innerText = "أمسك بك الوحش! 🙀";
+        updateUI();
+        overlay.style.display = 'flex'; 
     }
 
     function loop() {
-        if (active) {
-            let s = stages[cur];
-            // تحريك القطة
-            p.v += 0.45; p.y += p.v;
-            dist -= s.speed/10;
+        frame++;
+        const s = stages[cur];
+        ctx.fillStyle = s.bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // تحريك الوحش (ذكاء مختلف للمرحلة 3)
-            if (s.monster === "eagle") m.y += (p.y - 100 - m.y) * 0.1;
-            else m.y += (p.y - m.y) * 0.05;
-            m.x = Math.min(p.x - 110, m.x + 0.1);
+        // رسم خلفية بسيطة (نجوم أو غبار)
+        ctx.fillStyle = "rgba(255,255,255,0.1)";
+        for(let i=0; i<20; i++) ctx.fillRect((i*100 - frame*2)%canvas.width, (i*50)%canvas.height, 2, 2);
 
-            // الكوخ
+        if (active && started) {
+            p.v += 0.5; p.y += p.v; dist -= s.s / 10;
+            m.y += (p.y - m.y) * 0.07; 
+            m.x = Math.min(p.x - 140, m.x + 0.4);
+
             if (dist <= 0) {
                 if(cabinX === -500) cabinX = canvas.width;
-                cabinX -= s.speed;
-                if(p.x > cabinX + 100) {
-                    active = false;
-                    cur++;
-                    if(cur < stages.length) {
-                        msg.innerText = "وصلت للكوخ! 🏡";
-                        btn.innerText = "دخول المرحلة التالية";
-                    } else {
-                        msg.innerText = "🏆 بطل المغامرة!";
-                        btn.innerText = "لعب من جديد";
-                        cur = 0;
-                    }
-                    overlay.style.display = 'flex';
+                cabinX -= s.s;
+                if(p.x > cabinX + 50) { 
+                    active = false; started = false; cur++; 
+                    if(cur >= stages.length) cur=0; 
+                    document.getElementById('msg').innerText = "نجوت من الوحش! 🏠";
+                    updateUI();
+                    overlay.style.display = 'flex'; 
                 }
             }
 
-            // العقبات
-            if (dist > 100 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350)) {
-                let h = Math.random() * (canvas.height - 350) + 50;
-                obs.push({ x: canvas.width, t: h, g: 250 });
-                if(Math.random() > 0.7) prizes.push({ x: canvas.width + 50, y: h + 125 });
+            if (dist > 50 && (obs.length === 0 || obs[obs.length-1].x < canvas.width - 350)) {
+                let gapY = Math.random() * (canvas.height - 380) + 100;
+                obs.push({ x: canvas.width, y: gapY, g: 320 });
+                items.push({ x: canvas.width + 80, y: gapY + 160 });
             }
 
             obs.forEach((o, i) => {
-                o.x -= s.speed;
-                if(p.x+40 > o.x && p.x+10 < o.x+60 && (p.y+10 < o.t || p.y+40 > o.t+o.g)) die();
-                if(o.x < -60) obs.splice(i, 1);
+                o.x -= s.s;
+                if(p.x+40 > o.x && p.x+10 < o.x+60 && (p.y+10 < o.y || p.y+50 > o.y+o.g)) die();
+                if(o.x < -100) obs.splice(i, 1);
             });
 
-            prizes.forEach((f, i) => {
-                f.x -= s.speed;
-                if(Math.hypot(p.x-f.x, p.y-f.y) < 40) { score += 50; prizes.splice(i, 1); }
+            items.forEach((f, i) => {
+                f.x -= s.s;
+                // تصادم مع السمكة - تم تكبير حجم الاصطدام قليلاً لسهولة اللعب
+                if(Math.hypot(p.x+30-f.x, p.y+30-f.y) < 55) { 
+                    totalFish += 100; items.splice(i, 1); 
+                    playCollectSound(); 
+                    updateUI(); 
+                }
             });
 
-            if(p.y > canvas.height || p.y < 0 || p.x < m.x + 60) die();
-
+            if(p.y > canvas.height || p.y < -80 || p.x < m.x + 80) die();
+            document.getElementById('fill').style.width = (1 - (dist/1000))*100 + "%";
             document.getElementById('dist').innerText = Math.max(0, Math.floor(dist));
-            document.getElementById('score').innerText = score;
-            document.getElementById('progress').style.width = (1 - (dist/1000))*100 + "%";
         }
 
-        // الرسم
-        ctx.fillStyle = stages[cur].bg;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+        // رسم الكوخ
         if(cabinX > -500) ctx.drawImage(imgs.cabin, cabinX, canvas.height/2-100, 200, 200);
-        ctx.drawImage(imgs[stages[cur].monster], m.x, m.y, 100, 100);
         
-        ctx.fillStyle = stages[cur].col;
-        obs.forEach(o => { ctx.fillRect(o.x, 0, 60, o.t); ctx.fillRect(o.x, o.t+o.g, 60, canvas.height); });
+        // رسم الوحش المطارد
+        ctx.save();
+        ctx.translate(m.x + 130, m.y + Math.sin(frame*0.2)*15);
+        ctx.scale(-1, 1); 
+        ctx.drawImage(imgs[s.m], 0, 0, 140, 140);
+        ctx.restore();
+
+        // رسم العوائق (أعمدة المرحلة)
+        obs.forEach(o => { 
+            ctx.fillStyle = s.col; 
+            ctx.fillRect(o.x, 0, 60, o.y); 
+            ctx.fillRect(o.x, o.y+o.g, 60, canvas.height);
+            // إضافة لمسة جمالية للأعمدة
+            ctx.fillStyle = "rgba(0,0,0,0.3)";
+            ctx.fillRect(o.x+40, 0, 20, canvas.height);
+        });
+
+        // رسم الأسماك (بحجم أكبر ووهج)
+        items.forEach(f => {
+            ctx.shadowBlur = 15; ctx.shadowColor = "gold";
+            ctx.drawImage(imgs.fish, f.x, f.y, 65, 65);
+            ctx.shadowBlur = 0;
+        });
         
-        prizes.forEach(f => ctx.drawImage(imgs.fish, f.x, f.y, 40, 40));
-        ctx.drawImage(imgs.cat, p.x, p.y, p.w, p.h);
+        // رسم القطة هملايا
+        if(hasShield) {
+            ctx.beginPath(); ctx.arc(p.x+35, p.y+35, 55, 0, Math.PI*2);
+            ctx.strokeStyle = "#00ffcc"; ctx.lineWidth = 4; ctx.stroke();
+        }
+        ctx.drawImage(imgs.cat, p.x, p.y, 75, 75);
 
         requestAnimationFrame(loop);
     }
 
-    const jump = () => { if(active) p.v = -8; };
-    window.addEventListener('mousedown', jump);
-    window.addEventListener('touchstart', (e) => { if(e.target.id !== 'btn') { e.preventDefault(); jump(); } }, {passive: false});
-
+    const trigger = () => { if(active) started = true; p.v = -9; };
+    window.addEventListener('mousedown', trigger);
+    window.addEventListener('touchstart', (e) => { if(active) { e.preventDefault(); trigger(); } }, {passive: false});
     loop();
 </script>
 </body>
